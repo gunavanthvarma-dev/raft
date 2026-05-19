@@ -1,0 +1,35 @@
+package raft
+
+type MessageType uint8
+
+const (
+	RequestVoteRequest MessageType = iota
+	RequestVoteResponse
+	AppendEntriesRequest
+	AppendEntriesResponse
+)
+
+type Message struct {
+	Type       MessageType
+	FromNodeId NodeId
+	ToNodeId   NodeId
+
+	Term uint64 //common for all messages
+	//AppendEntriesRequest
+	LeaderId     NodeId
+	PrevLogIndex uint64
+	PrevLogTerm  uint64
+	Entries      []LogEntry
+	LeaderCommit uint64
+
+	//AppendEntriesResponse
+	Success bool
+
+	//RequestVoteRequest
+	CandidateId  NodeId
+	LastLogIndex uint64
+	LastLogTerm  uint64
+
+	//RequestVoteResponse
+	VoteGranted bool
+}
