@@ -33,3 +33,9 @@ type Message struct {
 	//RequestVoteResponse
 	VoteGranted bool
 }
+
+type ServerTasks struct {
+	Messages         []Message
+	EntriesToPersist []LogEntry
+	EntriesToApply   []LogEntry
+}
