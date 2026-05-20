@@ -34,6 +34,10 @@ type Message struct {
 	VoteGranted bool
 }
 
+type ClientRequest struct {
+	Data []byte
+}
+
 type ServerTasks struct {
 	Messages         []Message
 	EntriesToPersist []LogEntry
