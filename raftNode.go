@@ -6,6 +6,7 @@ type LogEntry struct {
 	Index   uint64
 	Term    uint64
 	Command []byte
+	//add LeaderCommit?
 }
 
 type RaftState uint8
@@ -36,7 +37,9 @@ type RaftNode struct {
 	//volatile state on all leaders; Reinitialized after each election
 	nextIndex map[NodeId]uint64 //for each server, index of the next log entry to send to that server(initizzalised to leader last log index+1 )
 
-	matchIndex map[NodeId]uint64 //for each server, index of the highest log entry known to be replicated on server
+	matchIndex  map[NodeId]uint64 //for each server, index of the highest log entry known to be replicated on server
+	timeoutGen  *TimeoutGenerator //generate timeout
+	serverTasks *ServerTasks
 }
 
 //Methods:
@@ -54,7 +57,7 @@ type RaftNode struct {
 // 9. ServerTasks() --- tells the server what it needs to do
 // 10. Proceed() --- tells Raft that everything was done
 // 11. candidateActions() ---
-func NewRaftNode(nodeid NodeId, peers []NodeId, electionTimeout uint64, heartbeatTimeout uint64) *RaftNode {
+func NewRaftNode(nodeid NodeId, peers []NodeId, electionTimeout uint64, heartbeatTimeout uint64, timeoutGen *TimeoutGenerator) *RaftNode {
 
 	return &RaftNode{
 		CurrentNodeId:    nodeid,
@@ -71,6 +74,7 @@ func NewRaftNode(nodeid NodeId, peers []NodeId, electionTimeout uint64, heartbea
 		lastApplied:      0,
 		nextIndex:        make(map[NodeId]uint64),
 		matchIndex:       make(map[NodeId]uint64),
+		timeoutGen:       timeoutGen,
 	}
 }
 
@@ -89,6 +93,34 @@ func (node *RaftNode) Tick() {
 	//send it to all peers(through serverTasks)
 	//IF NO
 
+	node.ElectionElapsed += 1
+	if node.ElectionElapsed == node.ElectionTimeout {
+		node.ElectionElapsed = 0
+		node.ElectionVotes = 0
+		node.ElectionTimeout = node.timeoutGen.GenerateTimeout() //generate new timeout
+		node.currentTerm += 1
+		node.NodeStatus = Candidate
+		node.votedFor = node.CurrentNodeId
+		node.ElectionVotes += 1
+		//need a function that builds RequestVoteMessage to send to all peers
+		//add Message to ServerTasks
+		node.sendRequestVote()
+	}
+
+}
+
+func (node *RaftNode) sendRequestVote() {
+	for _, peerId := range node.Peers {
+		msg := &Message{Type: RequestVoteRequest,
+			FromNodeId:   node.CurrentNodeId,
+			ToNodeId:     peerId,
+			Term:         node.currentTerm,
+			CandidateId:  node.CurrentNodeId,
+			LastLogIndex: node.log[len(node.log)-1].Index,
+			LastLogTerm:  node.log[len(node.log)-1].Term,
+		}
+		node.serverTasks.Messages = append(node.serverTasks.Messages, *msg)
+	}
 }
 
 func (node *RaftNode) ProcessClientRequest(req ClientRequest) {
@@ -121,22 +153,22 @@ func (node *RaftNode) ProcessNetworkMessage(msg Message) {
 	//		check = Entries[0]
 	//		if check.term!= log[check.index].term
 	//			remove everything from current entry to end of log
-	//		append new entries to the log; add to ServerTasks
-	//		if leaderCommit>commitIndex
+	//		append new entries to the log; add to ServerTasks                  ??PERSIST TO DISK FIRST BEFORE SENDING RESPONSE TO LEADER
+	//		if leaderCommit>commitIndex                                           // do this in Advance()
 	//			commitIndex = min(leaderCommit,index of last new entry)
-	//		build AppendEntriesResponse; add to ServerTasks
+	//		build AppendEntriesResponse; add to ServerTasks                       // this as well
 	//1.3Candidate
 	//  	1.3.1 if msg.term < currentTerm
 	//			1.3.1.1 success = false
 	//			1.3.1.2 term = currentTerm
 	//			1.3.1.3 create AppendEntriesResponse and add to serverTasks
 	//		1.3.2 else
-	//			1.3.2.1 change nodeStatus to Follower; and process the message as a follower
+	//			1.3.2.1 change nodeStatus to Follower; and process the message as a follower   //redundant
 	//1.4 Leader
 	//1.4.1 if msg.term < currentTerm
 	//		same as above
 	//1.4.2 else
-	//		convert to follower; process the message as a follower
+	//		convert to follower; process the message as a follower //redundant
 
 	// 2. AppendEntriesResponse
 
@@ -181,5 +213,23 @@ func (node *RaftNode) ProcessNetworkMessage(msg Message) {
 	//					Build AppendEntriesRPC; add to ServerTasks
 	//		3.3  Follower
 	//				Ignore it
+
+}
+
+func (node *RaftNode) Ready() {
+	//if commitIndex>lastApplied
+	//add log[lastApplied] to FSM; add to serverTasks;
+	//send ServerTasks() to server
+}
+
+// server tells Raft that everything is done
+func (node *RaftNode) Advance() {
+	//for every entry in EntriesToPersist
+	// send AppendEntriesResponse to leader
+	//		if leaderCommit>commitIndex
+	//			commitIndex = min(leaderCommit,index of last new entry)
+	//for every entry in EntriesToApply
+	//++commitIndex
+	//++lastApplied
 
 }
