@@ -12,3 +12,8 @@ May 20,2026:
 
 - This unit of measurement is temporary, after I build a working version of the RAFT protocol I will perform experiments to find the optimal unit of frequency and adjust the election timeout accordingly.
 
+
+June 6,2026:-
+
+- Implemented Timeout generator, sendRequestVote()
+- TODO next: implement processClientRequest()
