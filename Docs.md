@@ -17,3 +17,23 @@ June 6,2026:-
 
 - Implemented Timeout generator, sendRequestVote()
 - TODO next: implement processClientRequest()
+
+
+June 7, 2026:
+
+ - So for AppendEntriesRPC the leader sends it and continues processing other messages; when it gets AppendEntriesResponse how does it know for which logEntry it received ack for? 
+
+ - maybe based on NodeId it got the ack from? like check the nextIndex; cause the leader does not send the next log entry until it got for the previous one
+
+ - Continue thinking about how does the leader know that majority is replicated
+
+
+June 13, 2026:
+
+ - So we can add multiple log entries in a single RPC, need to create a variable to adjust batch size
+
+ - we don't have to track the index, because we won't send the next batch until we get an ack
+
+ - FUTURE OPTIMIZATION: SEND MULTIPLE BATCHES AT ONCE TO A SINGLE FOLLOWER --- For this we need the last index of the batch in the follower ack
+
+ - FUTURE OPTIMIZATION: add a variable to track the latest entry received by the follower so leader could update itself
