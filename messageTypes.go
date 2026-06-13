@@ -7,6 +7,9 @@ const (
 	RequestVoteResponse
 	AppendEntriesRequest
 	AppendEntriesResponse
+	//Client Messages
+	ClientRedirect
+	ClientError
 )
 
 type Message struct {
