@@ -195,6 +195,33 @@ func (node *RaftNode) ProcessClientRequest(req ClientRequest) {
 
 }
 
+func (node *RaftNode) appendEntriesResponseFalse(destNodeId NodeId) {
+	msg := &Message{
+		Type:       AppendEntriesResponse,
+		FromNodeId: node.CurrentNodeId,
+		ToNodeId:   destNodeId,
+		Term:       node.currentTerm,
+		Success:    false,
+	}
+	node.serverTasks.Messages = append(node.serverTasks.Messages, *msg)
+}
+
+func (node *RaftNode) RemoveEntriesAndAppend(entries []LogEntry) {
+
+	//remove entries from entries[0].index till end
+	tempLog := node.log[:entries[0].Index]
+	for _, val := range entries {
+		tempLog[val.Index] = val
+	}
+	node.log = tempLog
+}
+
+func (node *RaftNode) AddEntriesToPersist() {
+	for _, val := range node.log[node.commitIndex:] {
+		node.serverTasks.EntriesToPersist = append(node.serverTasks.EntriesToPersist, val)
+	}
+}
+
 func (node *RaftNode) ProcessNetworkMessage(msg Message) {
 	// whatver message you get, if msg.term > currentTerm;  porcess the msg as a follower
 	//	if entries[] is empty ---> HEARTBEAT
@@ -276,6 +303,51 @@ func (node *RaftNode) ProcessNetworkMessage(msg Message) {
 	//		3.3  Follower
 	//				Ignore it
 
+	if msg.Term > node.currentTerm {
+		node.NodeStatus = Follower
+		node.leaderId = msg.FromNodeId
+	}
+
+	switch msg.Type {
+	case AppendEntriesRequest:
+		switch node.NodeStatus {
+		case Follower:
+			//func to process AppendEntriesRPC as a Follower
+			// Step-1: check if the msg.term < currentTerm
+			//if yes, send appendEntriesResponse with currentTerm and false
+			//else
+			//if log[prevLogIndex].term != msg.term
+			//send appendEntriesResponse with currentTerm and false
+			//break
+			//clear log from log[msg.entries.start:]
+			//append msg.entries
+			// build entriestoPersist; add to ServerTasks;
+			if msg.Term < node.currentTerm || msg.PrevLogIndex > uint64(len(node.log)) || node.log[msg.PrevLogIndex].Term != msg.Term {
+				node.appendEntriesResponseFalse(msg.FromNodeId)
+			} else {
+				node.RemoveEntriesAndAppend(msg.Entries)
+				node.AddEntriesToPersist()
+			}
+		case Candidate:
+			if msg.Term < node.currentTerm {
+				node.appendEntriesResponseFalse(msg.FromNodeId)
+			} else {
+				//shoudnt happen because if the leader during this term is active, this node would not have changed to candidate and also the candidate would be at a higher term compared to the previous term leader
+				//This could cause some issues, like the cluster is always in election mode, need to look into this further
+				//LOG ERROR
+			}
+		case Leader:
+			if msg.Term < node.currentTerm {
+				node.appendEntriesResponseFalse(msg.FromNodeId)
+			} else {
+				//shoudnt happen as there will be 2 leaders in a single term. Invariant violation
+				//LOG ERROR
+			}
+
+		}
+
+	}
+
 }
 
 func (node *RaftNode) Ready() {
@@ -291,7 +363,6 @@ func (node *RaftNode) Advance() {
 	//		if leaderCommit>commitIndex
 	//			commitIndex = min(leaderCommit,index of last new entry)
 	//for every entry in EntriesToApply
-	//++commitIndex
 	//++lastApplied
 
 }
