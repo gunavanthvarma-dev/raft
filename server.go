@@ -20,7 +20,12 @@ func main() {
 // call raftNode.ProcessClientRequest(clientRequest)
 //end select
 
-//call raftNode.ServerTasks()
+//call raftNode.Ready()
 //Persist to Disk
+// call raftNode.Advance()
+// call raftNode.Ready()
 // Send messages to other Nodes
+//call raftNode.Advance()
+// call raftNode.Read()
 // Apply Changes to State machine
+// call raftNode.Advance()
