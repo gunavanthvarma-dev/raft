@@ -26,7 +26,8 @@ type Message struct {
 	LeaderCommit uint64
 
 	//AppendEntriesResponse
-	Success bool
+	Success        bool
+	LastEntryIndex uint64
 
 	//RequestVoteRequest
 	CandidateId  NodeId
