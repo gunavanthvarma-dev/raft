@@ -305,7 +305,7 @@ func (node *RaftNode) ProcessNetworkMessage(msg Message) {
 
 	if msg.Term > node.currentTerm {
 		node.NodeStatus = Follower
-		node.leaderId = msg.FromNodeId
+		node.leaderId = msg.FromNodeId // shoudnt this be like, the node that sent the msg should include the node it thinks is the leader? instead of assuming the message is sent by the leader
 	}
 
 	switch msg.Type {
@@ -342,6 +342,38 @@ func (node *RaftNode) ProcessNetworkMessage(msg Message) {
 			} else {
 				//shoudnt happen as there will be 2 leaders in a single term. Invariant violation
 				//LOG ERROR
+			}
+
+		}
+	case AppendEntriesResponse:
+		switch node.NodeStatus {
+		case Follower:
+			if msg.Term < node.currentTerm {
+				node.appendEntriesResponseFalse(msg.FromNodeId)
+			} else {
+				//not leader; so Ignore
+				//LOG Exception
+			}
+
+		case Candidate:
+			if msg.Term < node.currentTerm {
+				node.appendEntriesResponseFalse(msg.FromNodeId)
+			} else {
+				//not leader; so Ignore
+				//LOG Exception
+			}
+
+		case Leader:
+			if msg.Term < node.currentTerm {
+				node.appendEntriesResponseFalse(msg.FromNodeId)
+			} else {
+				if msg.Success == true {
+					node.nextIndex[msg.FromNodeId] += msg.LastEntryIndex + 1
+					node.matchIndex[msg.FromNodeId] = msg.LastEntryIndex
+				} else {
+					node.nextIndex[msg.FromNodeId] -= 1
+					node.sendAppendEntries()
+				}
 			}
 
 		}
