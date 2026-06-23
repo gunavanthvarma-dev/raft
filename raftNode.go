@@ -38,10 +38,11 @@ type RaftNode struct {
 	//volatile state on all leaders; Reinitialized after each election
 	nextIndex map[NodeId]uint64 //for each server, index of the next log entry to send to that server(initizzalised to leader last log index+1 )
 
-	matchIndex  map[NodeId]uint64 //for each server, index of the highest log entry known to be replicated on server
-	timeoutGen  *TimeoutGenerator //generate timeout
-	serverTasks *ServerTasks
-	majority    uint64 //tracks the number of AppendEntriesResponse received to advance commitIndex
+	matchIndex   map[NodeId]uint64 //for each server, index of the highest log entry known to be replicated on server
+	timeoutGen   *TimeoutGenerator //generate timeout
+	serverTasks  *ServerTasks
+	majority     uint64 //tracks the number of AppendEntriesResponse received to advance commitIndex
+	leaderCommit uint64 // leader's commitIndex
 }
 
 //Methods:
@@ -213,6 +214,18 @@ func (node *RaftNode) appendEntriesResponseFalse(destNodeId NodeId) {
 	node.serverTasks.Messages = append(node.serverTasks.Messages, *msg)
 }
 
+func (node *RaftNode) appendEntriesResponseTrue(lastEntryIndex uint64) {
+	msg := &Message{
+		Type:           AppendEntriesResponse,
+		FromNodeId:     node.CurrentNodeId,
+		ToNodeId:       node.leaderId,
+		Term:           node.currentTerm,
+		Success:        true,
+		LastEntryIndex: lastEntryIndex,
+	}
+	node.serverTasks.Messages = append(node.serverTasks.Messages, *msg)
+}
+
 func (node *RaftNode) RemoveEntriesAndAppend(entries []LogEntry) {
 
 	//remove entries from entries[0].index till end
@@ -354,6 +367,7 @@ func (node *RaftNode) ProcessNetworkMessage(msg Message) {
 			if msg.Term < node.currentTerm || msg.PrevLogIndex > uint64(len(node.log)) || node.log[msg.PrevLogIndex].Term != msg.Term {
 				node.appendEntriesResponseFalse(msg.FromNodeId)
 			} else {
+				node.leaderCommit = msg.LeaderCommit
 				node.RemoveEntriesAndAppend(msg.Entries)
 				node.AddEntriesToPersist()
 			}
@@ -362,6 +376,7 @@ func (node *RaftNode) ProcessNetworkMessage(msg Message) {
 				node.appendEntriesResponseFalse(msg.FromNodeId)
 			} else {
 				//A leader has been elected, convert to follower
+				node.leaderCommit = msg.LeaderCommit
 				node.NodeStatus = Follower
 				// do I have to rest anything?
 			}
@@ -445,10 +460,15 @@ func (node *RaftNode) ProcessNetworkMessage(msg Message) {
 
 }
 
-func (node *RaftNode) Ready() {
+func (node *RaftNode) Ready() ServerTasks {
 	//if commitIndex>lastApplied
 	//add log[lastApplied] to FSM; add to serverTasks;
 	//send ServerTasks() to server
+
+	if node.commitIndex > node.lastApplied {
+		node.serverTasks.EntriesToApply = append(node.serverTasks.EntriesToApply, node.log[node.lastApplied+1])
+	}
+	return *node.serverTasks
 }
 
 // server tells Raft that everything is done
@@ -460,4 +480,15 @@ func (node *RaftNode) Advance() {
 	//for every entry in EntriesToApply
 	//++lastApplied
 
+	clear(node.serverTasks.Messages)
+	for _, val := range node.serverTasks.EntriesToPersist {
+		node.appendEntriesResponseTrue(val.Index)
+		if node.leaderCommit > node.commitIndex {
+			node.commitIndex = min(node.leaderCommit, val.Index)
+		}
+	}
+	clear(node.serverTasks.EntriesToPersist)
+
+	node.lastApplied += uint64(len(node.serverTasks.EntriesToApply))
+	clear(node.serverTasks.EntriesToApply)
 }
