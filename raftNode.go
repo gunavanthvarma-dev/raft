@@ -96,6 +96,13 @@ func (node *RaftNode) Tick() {
 	//send it to all peers(through serverTasks)
 	//IF NO
 
+	if node.NodeStatus == Leader {
+		node.HeartbeatElapsed += 1
+		if node.HeartbeatElapsed == node.HeartbeatTimeout {
+			node.sendAppendEntries()
+			node.HeartbeatElapsed = 0
+		}
+	}
 	node.ElectionElapsed += 1
 	if node.ElectionElapsed == node.ElectionTimeout {
 		node.ElectionElapsed = 0
@@ -354,9 +361,9 @@ func (node *RaftNode) ProcessNetworkMessage(msg Message) {
 			if msg.Term < node.currentTerm {
 				node.appendEntriesResponseFalse(msg.FromNodeId)
 			} else {
-				//shoudnt happen because if the leader during this term is active, this node would not have changed to candidate and also the candidate would be at a higher term compared to the previous term leader
-				//This could cause some issues, like the cluster is always in election mode, need to look into this further
-				//LOG ERROR
+				//A leader has been elected, convert to follower
+				node.NodeStatus = Follower
+				// do I have to rest anything?
 			}
 		case Leader:
 			if msg.Term < node.currentTerm {
