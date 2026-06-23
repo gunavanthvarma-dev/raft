@@ -222,6 +222,28 @@ func (node *RaftNode) AddEntriesToPersist() {
 	}
 }
 
+func (node *RaftNode) RequestVoteResponseFalse(destNodeId NodeId) {
+	msg := &Message{
+		Type:        RequestVoteResponse,
+		FromNodeId:  node.CurrentNodeId,
+		ToNodeId:    destNodeId,
+		Term:        node.currentTerm,
+		VoteGranted: false,
+	}
+	node.serverTasks.Messages = append(node.serverTasks.Messages, *msg)
+}
+
+func (node *RaftNode) RequestVoteResponseTrue(destNodeId NodeId) {
+	msg := &Message{
+		Type:        RequestVoteResponse,
+		FromNodeId:  node.CurrentNodeId,
+		ToNodeId:    destNodeId,
+		Term:        node.currentTerm,
+		VoteGranted: true,
+	}
+	node.serverTasks.Messages = append(node.serverTasks.Messages, *msg)
+}
+
 func (node *RaftNode) ProcessNetworkMessage(msg Message) {
 	// whatver message you get, if msg.term > currentTerm;  porcess the msg as a follower
 	//	if entries[] is empty ---> HEARTBEAT
@@ -376,6 +398,40 @@ func (node *RaftNode) ProcessNetworkMessage(msg Message) {
 				}
 			}
 
+		}
+	case RequestVoteRequest:
+		if msg.Term < node.currentTerm {
+			node.RequestVoteResponseFalse(msg.FromNodeId)
+		}
+		switch node.NodeStatus {
+		case Follower:
+			lastLogEntry := node.log[len(node.log)-1]
+			if node.votedFor == 0 || node.votedFor == msg.FromNodeId && (lastLogEntry.Index <= msg.LastLogIndex && lastLogEntry.Term <= msg.LastLogTerm) {
+				node.RequestVoteResponseTrue(msg.FromNodeId)
+			} else {
+				node.RequestVoteResponseFalse(msg.FromNodeId)
+			}
+		case Candidate:
+			node.RequestVoteResponseFalse(msg.FromNodeId)
+			// what if the candidate requesting vote has a log that is more up-to-date?
+		case Leader:
+			// the message wont be processed as a leader
+			// LOG error
+		}
+
+	case RequestVoteResponse:
+		switch node.NodeStatus {
+		case Follower:
+		//Ignore or send a msg?
+		case Candidate:
+			if msg.VoteGranted == true {
+				node.ElectionVotes += 1
+			}
+			if node.ElectionVotes >= uint64(len(node.Peers)/2) {
+				node.NodeStatus = Leader
+			}
+		case Leader:
+			//Ignore or send a msg?
 		}
 
 	}
