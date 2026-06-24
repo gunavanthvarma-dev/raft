@@ -103,19 +103,20 @@ func (node *RaftNode) Tick() {
 			node.sendAppendEntries()
 			node.HeartbeatElapsed = 0
 		}
-	}
-	node.ElectionElapsed += 1
-	if node.ElectionElapsed == node.ElectionTimeout {
-		node.ElectionElapsed = 0
-		node.ElectionVotes = 0
-		node.ElectionTimeout = node.timeoutGen.GenerateTimeout() //generate new timeout
-		node.currentTerm += 1
-		node.NodeStatus = Candidate
-		node.votedFor = node.CurrentNodeId
-		node.ElectionVotes += 1
-		//need a function that builds RequestVoteMessage to send to all peers
-		//add Message to ServerTasks
-		node.sendRequestVote()
+	} else {
+		node.ElectionElapsed += 1
+		if node.ElectionElapsed == node.ElectionTimeout {
+			node.ElectionElapsed = 0
+			node.ElectionVotes = 0
+			node.ElectionTimeout = node.timeoutGen.GenerateTimeout() //generate new timeout
+			node.currentTerm += 1
+			node.NodeStatus = Candidate
+			node.votedFor = node.CurrentNodeId
+			node.ElectionVotes += 1
+			//need a function that builds RequestVoteMessage to send to all peers
+			//add Message to ServerTasks
+			node.sendRequestVote()
+		}
 	}
 
 }
