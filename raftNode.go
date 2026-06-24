@@ -79,6 +79,7 @@ func NewRaftNode(nodeid NodeId, peers []NodeId, electionTimeout uint64, heartbea
 		nextIndex:        make(map[NodeId]uint64),
 		matchIndex:       make(map[NodeId]uint64),
 		timeoutGen:       timeoutGen,
+		serverTasks:      new(ServerTasks),
 	}
 }
 
@@ -365,12 +366,19 @@ func (node *RaftNode) ProcessNetworkMessage(msg Message) {
 			//clear log from log[msg.entries.start:]
 			//append msg.entries
 			// build entriestoPersist; add to ServerTasks;
+
+			if len(msg.Entries) == 0 {
+				//heartbeat
+				node.ElectionElapsed = 0
+				break
+			}
 			if msg.Term < node.currentTerm || msg.PrevLogIndex > uint64(len(node.log)) || node.log[msg.PrevLogIndex].Term != msg.Term {
 				node.appendEntriesResponseFalse(msg.FromNodeId)
 			} else {
 				node.leaderCommit = msg.LeaderCommit
 				node.RemoveEntriesAndAppend(msg.Entries)
 				node.AddEntriesToPersist()
+				node.ElectionElapsed = 0
 			}
 		case Candidate:
 			if msg.Term < node.currentTerm {
@@ -379,6 +387,7 @@ func (node *RaftNode) ProcessNetworkMessage(msg Message) {
 				//A leader has been elected, convert to follower
 				node.leaderCommit = msg.LeaderCommit
 				node.NodeStatus = Follower
+				node.ElectionElapsed = 0
 				// do I have to rest anything?
 			}
 		case Leader:
