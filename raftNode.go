@@ -429,8 +429,16 @@ func (node *RaftNode) ProcessNetworkMessage(msg Message) {
 		switch node.NodeStatus {
 		case Follower:
 			lastLogEntry := node.log[len(node.log)-1]
-			if node.votedFor == 0 || node.votedFor == msg.FromNodeId && (lastLogEntry.Index <= msg.LastLogIndex && lastLogEntry.Term <= msg.LastLogTerm) {
-				node.RequestVoteResponseTrue(msg.FromNodeId)
+			if (node.votedFor == 0 || node.votedFor == msg.FromNodeId) && lastLogEntry.Term <= msg.LastLogTerm {
+				if lastLogEntry.Term == msg.LastLogTerm {
+					if lastLogEntry.Index <= msg.LastLogIndex {
+						node.RequestVoteResponseTrue(msg.FromNodeId)
+					} else {
+						node.RequestVoteResponseFalse(msg.FromNodeId)
+					}
+				} else {
+					node.RequestVoteResponseTrue(msg.FromNodeId)
+				}
 			} else {
 				node.RequestVoteResponseFalse(msg.FromNodeId)
 			}
