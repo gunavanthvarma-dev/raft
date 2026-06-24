@@ -486,6 +486,9 @@ func (node *RaftNode) Ready() ServerTasks {
 	if node.commitIndex > node.lastApplied {
 		node.serverTasks.EntriesToApply = append(node.serverTasks.EntriesToApply, node.log[node.lastApplied+1])
 	}
+	for _, val := range node.serverTasks.EntriesToPersist {
+		node.appendEntriesResponseTrue(val.Index)
+	}
 	return *node.serverTasks
 }
 
@@ -499,11 +502,14 @@ func (node *RaftNode) Advance() {
 	//++lastApplied
 
 	clear(node.serverTasks.Messages)
-	for _, val := range node.serverTasks.EntriesToPersist {
-		node.appendEntriesResponseTrue(val.Index)
-		if node.leaderCommit > node.commitIndex {
-			node.commitIndex = min(node.leaderCommit, val.Index)
-		}
+	// for _, val := range node.serverTasks.EntriesToPersist {
+	// 	node.appendEntriesResponseTrue(val.Index)
+	// 	if node.leaderCommit > node.commitIndex {
+	// 		node.commitIndex = min(node.leaderCommit, val.Index)
+	// 	}
+	// }
+	if node.leaderCommit > node.commitIndex {
+		node.commitIndex = min(node.leaderCommit, node.serverTasks.EntriesToPersist[len(node.serverTasks.EntriesToPersist)-1].Index)
 	}
 	clear(node.serverTasks.EntriesToPersist)
 
