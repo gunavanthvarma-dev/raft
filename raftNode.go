@@ -370,6 +370,9 @@ func (node *RaftNode) ProcessNetworkMessage(msg Message) {
 			if len(msg.Entries) == 0 {
 				//heartbeat
 				node.ElectionElapsed = 0
+				// persistent state variables
+				node.serverTasks.State.currentTerm = node.currentTerm
+				node.serverTasks.State.votedFor = node.votedFor
 				break
 			}
 			if msg.Term < node.currentTerm || msg.PrevLogIndex > uint64(len(node.log)) || node.log[msg.PrevLogIndex].Term != msg.Term {
@@ -379,6 +382,8 @@ func (node *RaftNode) ProcessNetworkMessage(msg Message) {
 				node.RemoveEntriesAndAppend(msg.Entries)
 				node.AddEntriesToPersist()
 				node.ElectionElapsed = 0
+				node.serverTasks.State.currentTerm = node.currentTerm
+				node.serverTasks.State.votedFor = node.votedFor
 			}
 		case Candidate:
 			if msg.Term < node.currentTerm {
@@ -388,6 +393,8 @@ func (node *RaftNode) ProcessNetworkMessage(msg Message) {
 				node.leaderCommit = msg.LeaderCommit
 				node.NodeStatus = Follower
 				node.ElectionElapsed = 0
+				node.serverTasks.State.currentTerm = node.currentTerm
+				node.serverTasks.State.votedFor = node.votedFor
 				// do I have to rest anything?
 			}
 		case Leader:

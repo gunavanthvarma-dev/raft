@@ -46,8 +46,14 @@ type ClientResponse struct {
 	Data []byte
 }
 
+type PersistentState struct {
+	currentTerm uint64
+	votedFor    NodeId
+}
+
 type ServerTasks struct {
 	Messages         []Message
 	EntriesToPersist []LogEntry
 	EntriesToApply   []LogEntry
+	State            PersistentState
 }
