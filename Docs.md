@@ -37,3 +37,12 @@ June 13, 2026:
  - FUTURE OPTIMIZATION: SEND MULTIPLE BATCHES AT ONCE TO A SINGLE FOLLOWER --- For this we need the last index of the batch in the follower ack
 
  - FUTURE OPTIMIZATION: add a variable to track the latest entry received by the follower so leader could update itself
+
+
+
+
+June 24, 2026:
+
+ - Raft leader election prototype implementation is done. I need to setup a test harness to allow me to create different scenarios to test the correctness of my implementation
+
+ 
