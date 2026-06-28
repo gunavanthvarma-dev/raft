@@ -1,5 +1,7 @@
 package raft
 
+import "log"
+
 type NodeId uint64
 
 type LogEntry struct {
@@ -129,10 +131,26 @@ func (node *RaftNode) sendRequestVote() {
 			ToNodeId:     peerId,
 			Term:         node.currentTerm,
 			CandidateId:  node.CurrentNodeId,
-			LastLogIndex: node.log[len(node.log)-1].Index,
-			LastLogTerm:  node.log[len(node.log)-1].Term,
+			LastLogIndex: node.getLastLogIndex(),
+			LastLogTerm:  node.getLastLogTerm(),
 		}
 		node.serverTasks.Messages = append(node.serverTasks.Messages, *msg)
+	}
+}
+
+func (node *RaftNode) getLastLogIndex() uint64 {
+	if len(node.log) == 0 {
+		return 0
+	} else {
+		return node.log[len(node.log)-1].Index
+	}
+}
+
+func (node *RaftNode) getLastLogTerm() uint64 {
+	if len(node.log) == 0 {
+		return 0
+	} else {
+		return node.log[len(node.log)-1].Term
 	}
 }
 
@@ -476,6 +494,9 @@ func (node *RaftNode) ProcessNetworkMessage(msg Message) {
 			}
 			if node.ElectionVotes >= uint64(len(node.Peers)/2) {
 				node.NodeStatus = Leader
+
+				//log message
+				log.Printf("\nNodeId %d is Leader for term %d", node.CurrentNodeId, node.currentTerm)
 			}
 		case Leader:
 			//Ignore or send a msg?
