@@ -6,13 +6,35 @@ type raftTest struct {
 	NumberOfNodes uint64
 	NodesList     []raft.RaftNode
 	NodeState     map[raft.RaftState]NodeStateVariables
+	// add a log file
+}
+
+//IDEA:
+//create a config file, read from that config file. implement later
+
+func newRaftTest(noOfNodes uint64) *raftTest {
+	peerslist := make([]raft.NodeId, 0)
+	NodesList := make([]raft.RaftNode, 0)
+	timeoutGen := raft.NewTimeoutGenerator(5, 15)
+	for v := range noOfNodes {
+		peerslist = append(peerslist, raft.NodeId(v+1))
+		node := raft.NewRaftNode(
+			raft.NodeId(v+1),
+			make([]raft.NodeId, 0),
+			timeoutGen.GenerateTimeout(),
+			4,
+			timeoutGen,
+		)
+		NodesList = append(NodesList, *node)
+	}
+	return &raftTest{NumberOfNodes: noOfNodes, NodesList: NodesList}
 }
 
 type NodeStateVariables struct {
-	ElectionTimeout  uint64
+	ElectionTimeout  uint64 // initially unique for each node
 	ElectionElapsed  uint64
 	HeartbeatElapsed uint64
-	HeartbeatTimeout uint64
+	HeartbeatTimeout uint64 //unique for each node?
 	ElectionVotes    uint64
 
 	currentTerm uint64
