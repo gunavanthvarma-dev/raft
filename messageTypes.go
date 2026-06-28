@@ -1,5 +1,7 @@
 package raft
 
+import "fmt"
+
 type MessageType uint8
 
 const (
@@ -36,6 +38,10 @@ type Message struct {
 
 	//RequestVoteResponse
 	VoteGranted bool
+}
+
+func (msg *Message) ToString() string {
+	return fmt.Sprintf("MessageType:%d\nFromNodeId:%d\nToNodeId:%d\nTerm:%d\nLeaderId:%d\nPrevLogIndex:%d\nPrevLogTerm:%d\nEntries:\nLeaderCommit:%d\nSuccess:%d\nLastEntryIndex:%d\nCandidateId:%d\nLastLogIndex:%d\nLastLogTerm:%d\nVoteGranted:%d", msg.Type, msg.FromNodeId, msg.ToNodeId, msg.Term, msg.LeaderId, msg.PrevLogIndex, msg.PrevLogTerm, msg.LeaderCommit, msg.Success, msg.LastEntryIndex, msg.CandidateId, msg.LastLogIndex, msg.LastLogTerm, msg.VoteGranted)
 }
 
 type ClientRequest struct {
