@@ -13,3 +13,27 @@ June 25, 2026
             1.5.2 Given a set of initial state, define messages and/Or order them based on Tick in the Transport queue, check the outcome after a specific duration or at each cycle/Tick
             1.5.3 Update Transport/Storage interface after each Tick
             1.5.4 Check output after each Tick or at the End of the scenario
+
+
+# Test Infra Goals:
+
+1. Assert the values of ServerTasks of a particular node/multiple nodes at a particular/multiple Tick(s)
+2. Assert the state of a particular/multiple nodes at a particular/multiple Tick(s)
+3. Provide a mechanism to set/modify state of a particular/multiple Node(s) at a particular Tick(s)
+
+## Transport Layer:
+
+1. Setup a Network Inbound/Outbound queue for every Node
+2. Provide a mechanism to add a filter in the transport queue of a particular/multiple Node(s), filter parameters need to be determined
+3. Provide a mechanism to add a delay in the transport queue of a particular/multiple Node(s) to simulate network partition/network congestion/node processing delay
+
+## Storage Layer:
+
+1. Setup a local storage for Node(s) 
+2. Simulate the functionalities of the storage layer( persist entries and state)
+
+
+## Future Goals:
+
+1. Provide a mechanism to setup a config file to create pre-defined test scenarios; parameters to be determined later
+2. Provide a mechanism to modify test parameters interactively 
