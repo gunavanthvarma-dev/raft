@@ -37,3 +37,47 @@ June 25, 2026
 
 1. Provide a mechanism to setup a config file to create pre-defined test scenarios; parameters to be determined later
 2. Provide a mechanism to modify test parameters interactively 
+
+
+
+Create a base TestInfraEnvironment
+Parameters:
+    1. Number of Nodes
+    2. List of Nodes
+    3. Tick Interval
+    4. Standard network delay
+    5. Abnormal network delay
+    6. Standard process delay 
+    7. Abnormal process delay
+    8. Standard packet drop rate  --- Need to investigate further, accounting for TCP
+    9. Abnormal packet drop rate  --- Need to investigate further, accounting for TCP
+    10. Nodes that crash and do not restart
+    11. Nodes that crash and restart
+    12. Abnormal nodes list --- Each node has to specify the abnormal network delay, abnormal process delay, abnormal packet drop rate, crash rate, crash and restart rate, also specify the Tick interval where it occurs
+    13. Transportlayer --- central switch ; has list of all inbound and outbound queues of all nodes 
+    14. Storagelayer --- List of all persistent storage of all nodes
+
+    Network delay can be set as inbound link delay or outbound link delay
+    process delay can be set as a sleep()
+    packet drop rate 
+
+TestNode:
+Parameters:
+    1. RaftNode
+    2. Tick interval
+    3. Abnormal/Normal
+    4. Abnormal network delay, Tick[]
+    5. Abnormal process delay, Tick[]
+    6. Abnormal packet drop rate, Tick[]
+    7. Inbound Queue
+    8. Outbound Queue
+    9. Storage Layer; log
+
+Test Env:
+
+func init(TestEnvConfig):
+    // create TestNodes based on TestEnvConfig file with an option of default/custom Node config --- need to look into it
+
+    // Create Ticker based on Tick interval
+
+    //   
