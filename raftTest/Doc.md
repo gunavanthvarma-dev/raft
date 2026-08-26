@@ -80,4 +80,9 @@ func init(TestEnvConfig):
 
     // Create Ticker based on Tick interval
 
-    //   
+    //  
+
+
+Tests:-
+
+1. Trigger Election

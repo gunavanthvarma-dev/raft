@@ -1,19 +1,19 @@
 package raft
 
-func main() {
-	// get config details from CLI
+//func main() {
+// get config details from CLI
 
-	//create Ticker
-	//initialize network layer
-	//initialize storage layer
+//create Ticker
+//initialize network layer
+//initialize storage layer
 
-	// create a raft node based on config
+// create a raft node based on config
 
-	//main process loop
+//main process loop
 
-	//select stmt
-	// <-ticker
-} // call raftNode.Tick()
+//select stmt
+// <-ticker
+//} // call raftNode.Tick()
 // msg <-networkChannel
 // call raftNode.ProcessNetworkMessage(msg)
 // clientRequest <-clientChannel

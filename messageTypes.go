@@ -41,7 +41,7 @@ type Message struct {
 }
 
 func (msg *Message) ToString() string {
-	return fmt.Sprintf("MessageType:%d\nFromNodeId:%d\nToNodeId:%d\nTerm:%d\nLeaderId:%d\nPrevLogIndex:%d\nPrevLogTerm:%d\nEntries:\nLeaderCommit:%d\nSuccess:%d\nLastEntryIndex:%d\nCandidateId:%d\nLastLogIndex:%d\nLastLogTerm:%d\nVoteGranted:%d", msg.Type, msg.FromNodeId, msg.ToNodeId, msg.Term, msg.LeaderId, msg.PrevLogIndex, msg.PrevLogTerm, msg.LeaderCommit, msg.Success, msg.LastEntryIndex, msg.CandidateId, msg.LastLogIndex, msg.LastLogTerm, msg.VoteGranted)
+	return fmt.Sprintf("MessageType:%d\nFromNodeId:%d\nToNodeId:%d\nTerm:%d\nLeaderId:%d\nPrevLogIndex:%d\nPrevLogTerm:%d\nEntries:\nLeaderCommit:%d\nSuccess:%t\nLastEntryIndex:%d\nCandidateId:%d\nLastLogIndex:%d\nLastLogTerm:%d\nVoteGranted:%t", msg.Type, msg.FromNodeId, msg.ToNodeId, msg.Term, msg.LeaderId, msg.PrevLogIndex, msg.PrevLogTerm, msg.LeaderCommit, msg.Success, msg.LastEntryIndex, msg.CandidateId, msg.LastLogIndex, msg.LastLogTerm, msg.VoteGranted)
 }
 
 type ClientRequest struct {
@@ -61,5 +61,10 @@ type ServerTasks struct {
 	Messages         []Message
 	EntriesToPersist []LogEntry
 	EntriesToApply   []LogEntry
+	State            PersistentState
+}
+
+type DiskEntry struct {
+	EntriesToPersist []LogEntry
 	State            PersistentState
 }

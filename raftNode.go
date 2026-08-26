@@ -41,7 +41,7 @@ type RaftNode struct {
 	nextIndex map[NodeId]uint64 //for each server, index of the next log entry to send to that server(initizzalised to leader last log index+1 )
 
 	matchIndex   map[NodeId]uint64 //for each server, index of the highest log entry known to be replicated on server
-	timeoutGen   *TimeoutGenerator //generate timeout
+	timeoutGen   TimeoutGenerator  //generate timeout
 	serverTasks  *ServerTasks
 	majority     uint64 //tracks the number of AppendEntriesResponse received to advance commitIndex
 	leaderCommit uint64 // leader's commitIndex
@@ -62,7 +62,7 @@ type RaftNode struct {
 // 9. ServerTasks() --- tells the server what it needs to do
 // 10. Proceed() --- tells Raft that everything was done
 // 11. candidateActions() ---
-func NewRaftNode(nodeid NodeId, peers []NodeId, electionTimeout uint64, heartbeatTimeout uint64, timeoutGen *TimeoutGenerator) *RaftNode {
+func NewRaftNode(nodeid NodeId, peers []NodeId, electionTimeout uint64, heartbeatTimeout uint64, timeoutGen TimeoutGenerator) *RaftNode {
 
 	return &RaftNode{
 		CurrentNodeId:    nodeid,
