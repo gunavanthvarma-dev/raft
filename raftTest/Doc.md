@@ -85,4 +85,13 @@ func init(TestEnvConfig):
 
 Tests:-
 
-1. Trigger Election
+1. Reach ElectionTimeout and Trigger Election, node changes status to Candidate and sends request vote to peers -- Done
+2. Node receives valid requestVote, checks if its valid and sends response True -- Done
+3. Node receives invalid requestVote, checks if its valid and sends response False  -- Done
+4. Node receives valid requestVote response, check if it got majority and converts to Leader  -- Done; need to verify
+5. Node receives valid requestVote response, check if it does not have a majority, it still stays in Candidate 
+6. Node receives invalid requestVote response, check if it got majority and converts to Leader  
+7. Node receives invalid requestVote response, check if it does not have a majority, it still stays in Candidate
+8. Node in Candidate mode, hits electionTimeout if it does not get enough votes in time
+9. Node in Candidate mode, sends request vote but does not get a reply
+10. 
