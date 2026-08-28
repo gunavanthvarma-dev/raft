@@ -63,8 +63,12 @@ type RaftNode struct {
 // 10. Proceed() --- tells Raft that everything was done
 // 11. candidateActions() ---
 func NewRaftNode(nodeid NodeId, peers []NodeId, electionTimeout uint64, heartbeatTimeout uint64, timeoutGen TimeoutGenerator) *RaftNode {
-
-	return &RaftNode{
+	// initialLog := make([]LogEntry,)
+	// initialLog[0] = LogEntry{
+	// 	Index: 0,
+	// 	Term:  0,
+	// }
+	raftNode := &RaftNode{
 		CurrentNodeId:    nodeid,
 		Peers:            peers,
 		ElectionTimeout:  electionTimeout,
@@ -75,7 +79,7 @@ func NewRaftNode(nodeid NodeId, peers []NodeId, electionTimeout uint64, heartbea
 		ElectionVotes:    0,
 		currentTerm:      0,
 		votedFor:         0,
-		logIndex:         0,
+		logIndex:         1,
 		commitIndex:      0,
 		lastApplied:      0,
 		nextIndex:        make(map[NodeId]uint64),
@@ -83,6 +87,8 @@ func NewRaftNode(nodeid NodeId, peers []NodeId, electionTimeout uint64, heartbea
 		timeoutGen:       timeoutGen,
 		serverTasks:      new(ServerTasks),
 	}
+	raftNode.log = append(raftNode.log, LogEntry{Index: 0, Term: 0})
+	return raftNode
 }
 
 func (node *RaftNode) Tick() {
@@ -459,29 +465,31 @@ func (node *RaftNode) ProcessNetworkMessage(msg Message) {
 	case RequestVoteRequest:
 		if msg.Term < node.currentTerm {
 			node.RequestVoteResponseFalse(msg.FromNodeId)
-		}
-		switch node.NodeStatus {
-		case Follower:
-			lastLogEntry := node.log[len(node.log)-1]
-			if (node.votedFor == 0 || node.votedFor == msg.FromNodeId) && lastLogEntry.Term <= msg.LastLogTerm {
-				if lastLogEntry.Term == msg.LastLogTerm {
-					if lastLogEntry.Index <= msg.LastLogIndex {
-						node.RequestVoteResponseTrue(msg.FromNodeId)
+		} else {
+
+			switch node.NodeStatus {
+			case Follower:
+				lastLogEntry := node.log[len(node.log)-1] // what if the log is empty? will throw panic
+				if (node.votedFor == 0 || node.votedFor == msg.FromNodeId) && lastLogEntry.Term <= msg.LastLogTerm {
+					if lastLogEntry.Term == msg.LastLogTerm {
+						if lastLogEntry.Index <= msg.LastLogIndex {
+							node.RequestVoteResponseTrue(msg.FromNodeId)
+						} else {
+							node.RequestVoteResponseFalse(msg.FromNodeId)
+						}
 					} else {
-						node.RequestVoteResponseFalse(msg.FromNodeId)
+						node.RequestVoteResponseTrue(msg.FromNodeId)
 					}
 				} else {
-					node.RequestVoteResponseTrue(msg.FromNodeId)
+					node.RequestVoteResponseFalse(msg.FromNodeId)
 				}
-			} else {
+			case Candidate:
 				node.RequestVoteResponseFalse(msg.FromNodeId)
+				// what if the candidate requesting vote has a log that is more up-to-date?
+			case Leader:
+				// the message wont be processed as a leader
+				// LOG error
 			}
-		case Candidate:
-			node.RequestVoteResponseFalse(msg.FromNodeId)
-			// what if the candidate requesting vote has a log that is more up-to-date?
-		case Leader:
-			// the message wont be processed as a leader
-			// LOG error
 		}
 
 	case RequestVoteResponse:
@@ -493,8 +501,8 @@ func (node *RaftNode) ProcessNetworkMessage(msg Message) {
 				node.ElectionVotes += 1
 			}
 			if node.ElectionVotes >= uint64(len(node.Peers)/2) {
-				node.NodeStatus = Leader
-
+				node.initializeLeader()
+				node.sendAppendEntries()
 				//log message
 				log.Printf("\nNodeId %d is Leader for term %d", node.CurrentNodeId, node.currentTerm)
 			}
@@ -504,6 +512,14 @@ func (node *RaftNode) ProcessNetworkMessage(msg Message) {
 
 	}
 
+}
+
+func (node *RaftNode) initializeLeader(){
+	node.NodeStatus = Leader
+	for _,peerId := range node.Peers{
+		node.nextIndex[peerId] = node.getLastLogIndex()+1
+		node.matchIndex[peerId] = uint64(0)
+	}
 }
 
 func (node *RaftNode) Ready() ServerTasks {

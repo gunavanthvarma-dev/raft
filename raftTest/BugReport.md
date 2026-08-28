@@ -1,4 +1,4 @@
-June 28,2026
+
 
 1. TestName: TriggerElectionTimeout()
 
@@ -18,3 +18,42 @@ June 28,2026
         Solution:
 
             --> Reslicing
+
+
+3. TestName: TestRequestVoteResponseTrue()
+
+        Problem Found:
+            --> so &5.2 in the paper where we check the last log entry while processing the RequestVote RPC, we check the last element in the receiver node's log. what if the log is empty? like in the scenario where its the first election, the log is empty, so there will be a panic.
+
+        Solution:
+            --> include a default log entry in all nodes
+
+
+4. TestName: TestRequestVoteResponseFalse()
+
+        Problem Found:
+            --> so after receiving requestVote rpc, we check the term in the message; if its less than the receiving node's current term, we send a false msg. Problem was that condition should be if/else. but I gave it just as an if condition.
+                                            if msg.Term < node.currentTerm {
+                                            node.RequestVoteResponseFalse(msg.FromNodeId)
+                                            }
+                                            switch node.NodeStatus {                     THIS SHOULD BE IN ELSE CONDITION!!!!!
+        Solution:
+            --> Add an else condition
+
+5. TestName: TestCandidateReceiveVoteFromAllNodesAndConvertToLeaderAndSendInitialAppendEntriesRPC()
+
+        Problem Found:
+            --> So in Rules for Leaders: &5.2 A newely elected leader needs to send an initial AppendEntriesRPC to all followers but currently in the code the initial RPC is not sent until the leader hits the heartbeat timeout. so the problem is any other node can trigger election again if the leader does not announce itself in time.
+
+        Solution:
+            --> as soon as the node changes its status to leader; send a heartbeat
+
+        
+        Problem Found:
+            --> so nextIndex, matchIndex are empty map, so when a new leader tries to send appendEntriesRPC; it tries to access and empty map and throws panic
+
+        Solution:
+            --> initailze values with last log entry of the leader+1 upon election [mentioned in volatile state of leaders] 
+                                        
+
+
