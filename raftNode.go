@@ -500,7 +500,7 @@ func (node *RaftNode) ProcessNetworkMessage(msg Message) {
 			if msg.VoteGranted == true {
 				node.ElectionVotes += 1
 			}
-			if node.ElectionVotes >= uint64(len(node.Peers)/2) {
+			if node.ElectionVotes > uint64((len(node.Peers)+1)/2) {
 				node.initializeLeader()
 				node.sendAppendEntries()
 				//log message
