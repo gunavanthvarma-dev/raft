@@ -89,12 +89,13 @@ Tests:-
 2. Node receives valid requestVote, checks if its valid and sends response True -- Done
 3. Node receives invalid requestVote, checks if its valid and sends response False  -- Done
 4. Node receives all valid requestVote response, gets majority -- Done
-5. Node receives a duplicate vote from a peer; check if its idempotent 
-6. Node receives non majority valid requestVote response, check if it does not have a majority, it still stays in Candidate 
-7. Node receives some invalid requestVote response and moslty valid requestVote, check if it got majority   
-8. Node receives mostly invalid requestVote response, check if it does not have a majority, it still stays in Candidate
-9. Node in Candidate mode, hits electionTimeout if it does not get enough votes in time
-10. Node receives RequestVoteResponse with a different term; check if it rejects it
-11. Node receives RequestVoteResponse after election completion; check if it handles it
-12. Node elected Leader; check if it sends initial appendEntries to all the peers; check matchIndex and nextIndex initialization
+5. Node receives a duplicate vote from a peer; check if its idempotent -- Done, need to verify
+6. Node receives non majority valid requestVote response, check if it does not have a majority, it still stays in Candidate  -- done; need to verify
+7. Node receives some invalid requestVote response and moslty valid requestVote, check if it got majority  -- 6 checks it
+8. Node receives mostly invalid requestVote response, check if it does not have a majority, it still stays in Candidate -- 6 chceks it
+9. Node in Candidate mode, hits electionTimeout if it does not get enough votes in time and starts new election -- Done
+10. Candidate Node receives a AppendEntriesRPC/RequestVoteRPC with a term greater than current term; convert
+11. Node receives RequestVoteResponse with a lesser term; check if it rejects it --- 
+12. Leader Node receives RequestVoteResponse after election completion; check if it rejects it
+13. Node elected Leader; check if it sends initial appendEntries to all the peers; check matchIndex and nextIndex initialization
 11. 

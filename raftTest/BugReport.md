@@ -56,6 +56,11 @@
         Solution:
             --> Make ElectionVotes variable in RaftNode struct a Set to enable idempotency
 
+7. TestName: TestCandidateRejectsRequestVoteResponseWithLesserTerm()
+
+        Problem Found: 
+            --> So the RaftNode should reject any requestVoteResponse msg that is from an older term; but electionVotes does get updated which breaks $5.1. 
+
 5. TestName: TestCandidateReceiveVoteFromAllNodesAndConvertToLeaderAndSendInitialAppendEntriesRPC()
 
         Problem Found:

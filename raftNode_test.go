@@ -193,11 +193,149 @@ func TestCandidateReceivesDuplicateRequestVoteIsIdempotent(t *testing.T) {
 	testNode.Ready()
 	testNode.Advance()
 
-	require.Equal(t, uint64(2), testNode.ElectionVotes)
+	require.Equal(t, 2, len(testNode.ElectionVotes))
 
 	testNode.ProcessNetworkMessage(*reqVoteRespNode2)
 	testNode.Ready()
 	testNode.Advance()
 
-	assert.Equal(t, uint64(2), testNode.ElectionVotes)
+	assert.Equal(t, 2, len(testNode.ElectionVotes))
+}
+
+func TestCandidateDoesNotGetMajorityVoteRemainsCandidate(t *testing.T){
+	// need a function; that gives me a Candidate,Leader,Follower with a specified term,log etc
+	timeoutGen := NewFixedTimeoutGenerator(6)
+	testNode := NewRaftNode(1, []NodeId{2, 3, 4, 5}, 6, 6, timeoutGen)
+	reqVoteRespNode2 := &Message{Type: RequestVoteResponse, FromNodeId: 2, ToNodeId: 1, Term: 1, VoteGranted: true}
+	reqVoteRespNode3 := &Message{Type:RequestVoteResponse,FromNodeId: 3,ToNodeId: 1,Term: 1,VoteGranted: false}
+
+	testNode.Tick()
+	testNode.Ready()
+	testNode.Advance()
+
+	testNode.Tick()
+	testNode.Ready()
+	testNode.Advance()
+
+	testNode.Tick()
+	testNode.Ready()
+	testNode.Advance()
+
+	testNode.Tick()
+	testNode.Ready()
+	testNode.Advance()
+
+	testNode.Tick()
+	testNode.Ready()
+	testNode.Advance()
+
+	testNode.Tick()
+	tasks := testNode.Ready()
+	require.Equal(t, 4, len(tasks.Messages))
+	testNode.Advance() // Tick 6
+
+	testNode.Tick()
+	testNode.Ready()
+	testNode.Advance()
+
+	require.Equal(t, testNode.NodeStatus, Candidate)
+
+	testNode.ProcessNetworkMessage(*reqVoteRespNode2)
+	testNode.Ready()
+	testNode.Advance()
+
+	require.Equal(t, 2, len(testNode.ElectionVotes))
+
+	testNode.ProcessNetworkMessage(*reqVoteRespNode3)
+	testNode.Ready()
+	testNode.Advance()
+
+	assert.Equal(t, 2, len(testNode.ElectionVotes))
+	assert.Equal(t,Candidate,testNode.NodeStatus)
+
+}
+
+func TestCandidateHitsElectionTimeoutWhileWaitingForVotesAndTriggersNewElection(t *testing.T){
+	timeoutGen := NewFixedTimeoutGenerator(3)
+	testNode := NewRaftNode(1, []NodeId{2, 3, 4, 5}, 3, 6, timeoutGen)
+
+	testNode.Tick()
+	testNode.Ready()
+	testNode.Advance()
+
+	testNode.Tick()
+	testNode.Ready()
+	testNode.Advance()
+
+	testNode.Tick()
+	tasks:=testNode.Ready()
+	testNode.Advance()
+
+	require.Equal(t,uint64(1),testNode.currentTerm)
+    require.Equal(t,4,len(tasks.Messages))
+	require.Equal(t,uint64(1),tasks.Messages[len(tasks.Messages)-1].Term)
+
+	testNode.Tick()
+	testNode.Ready()
+	testNode.Advance()
+
+	testNode.Tick()
+	testNode.Ready()
+	testNode.Advance()
+
+	testNode.Tick()
+	tasksNext:=testNode.Ready()
+	testNode.Advance()
+
+	assert.Equal(t,uint64(2),testNode.currentTerm)
+    assert.Equal(t,4,len(tasksNext.Messages))
+	assert.Equal(t,uint64(2),tasksNext.Messages[len(tasksNext.Messages)-1].Term)
+
+
+}
+
+func TestCandidateRejectsRequestVoteResponseWithLesserTerm(t *testing.T){
+	timeoutGen := NewFixedTimeoutGenerator(3)
+	testNode := NewRaftNode(1, []NodeId{2, 3, 4, 5}, 3, 6, timeoutGen)
+	reqVoteRespNode2 := &Message{Type: RequestVoteResponse, FromNodeId: 2, ToNodeId: 1, Term: 1, VoteGranted: true}
+
+	testNode.Tick()
+	testNode.Ready()
+	testNode.Advance()
+
+	testNode.Tick()
+	testNode.Ready()
+	testNode.Advance()
+
+	testNode.Tick()
+	testNode.Ready()
+	testNode.Advance()
+
+	// require.Equal(t,uint64(1),testNode.currentTerm)
+    // require.Equal(t,4,len(tasks.Messages))
+	// require.Equal(t,uint64(1),tasks.Messages[len(tasks.Messages)-1].Term)
+
+	testNode.Tick()
+	testNode.Ready()
+	testNode.Advance()
+
+	testNode.Tick()
+	testNode.Ready()
+	testNode.Advance()
+
+	testNode.Tick()
+	tasksNext:=testNode.Ready()
+	testNode.Advance()
+
+	require.Equal(t,uint64(2),testNode.currentTerm)
+    require.Equal(t,4,len(tasksNext.Messages))
+	require.Equal(t,uint64(2),tasksNext.Messages[len(tasksNext.Messages)-1].Term)
+
+	testNode.ProcessNetworkMessage(*reqVoteRespNode2)
+	testNode.Ready()
+	testNode.Advance()
+
+	assert.Equal(t,Candidate,testNode.NodeStatus)
+	assert.Equal(t,1,len(testNode.ElectionVotes))
+
 }
