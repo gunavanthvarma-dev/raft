@@ -27,7 +27,7 @@ type RaftNode struct {
 	NodeStatus       RaftState
 	HeartbeatElapsed uint64 //ticks since last haertbeat; for leader
 	HeartbeatTimeout uint64 // frequency of heartbeats; for leader
-	ElectionVotes    uint64 //count votes during election
+	ElectionVotes    map[uint64]struct{} //count votes during election // its a set to make it idempotent
 	//persistent state
 	currentTerm uint64 // latest term server has seen(default 0 at boot)
 	votedFor    NodeId //candidateID that received vote in current term(default 0 if none)
@@ -76,7 +76,7 @@ func NewRaftNode(nodeid NodeId, peers []NodeId, electionTimeout uint64, heartbea
 		NodeStatus:       Follower,
 		HeartbeatElapsed: 0,
 		HeartbeatTimeout: heartbeatTimeout,
-		ElectionVotes:    0,
+		ElectionVotes:    make(map[uint64]struct{}),
 		currentTerm:      0,
 		votedFor:         0,
 		logIndex:         1,
@@ -116,12 +116,12 @@ func (node *RaftNode) Tick() {
 		node.ElectionElapsed += 1
 		if node.ElectionElapsed == node.ElectionTimeout {
 			node.ElectionElapsed = 0
-			node.ElectionVotes = 0
+			node.ElectionVotes = make(map[uint64]struct{})
 			node.ElectionTimeout = node.timeoutGen.GenerateTimeout() //generate new timeout
 			node.currentTerm += 1
 			node.NodeStatus = Candidate
 			node.votedFor = node.CurrentNodeId
-			node.ElectionVotes += 1
+			node.ElectionVotes[uint64(node.CurrentNodeId)] = struct{}{}
 			//need a function that builds RequestVoteMessage to send to all peers
 			//add Message to ServerTasks
 			node.sendRequestVote()
@@ -498,9 +498,9 @@ func (node *RaftNode) ProcessNetworkMessage(msg Message) {
 		//Ignore or send a msg?
 		case Candidate:
 			if msg.VoteGranted == true {
-				node.ElectionVotes += 1
+				node.ElectionVotes[uint64(msg.FromNodeId)] = struct{}{}
 			}
-			if node.ElectionVotes > uint64((len(node.Peers)+1)/2) {
+			if uint64(len(node.ElectionVotes)) > uint64((len(node.Peers)+1)/2) {
 				node.initializeLeader()
 				node.sendAppendEntries()
 				//log message

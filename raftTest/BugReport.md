@@ -40,6 +40,22 @@
         Solution:
             --> Add an else condition
 
+5. TestName: TestCandidateReceivesAllValidRequestVoteGetsMajority()
+
+        Problem Found: 
+            --> Majority vote check condition was >=len(Peers)/2 which was wrong as Peers did not account for the the candidate node itself as part of the vote; so it appeared to have majority vote when in reality it got triggered at 50% and not >50% of the vote
+
+        Solution:
+            --> changed it to > (len(Peers)+1)/2
+
+6. TestName: TestCandidateReceivesDuplicateRequestVoteIsIdempotent()
+
+        Problem Found:
+            --> so when the same peerNode sends a duplicate vote again; its not idempotent and the electionVotes increases again
+
+        Solution:
+            --> Make ElectionVotes variable in RaftNode struct a Set to enable idempotency
+
 5. TestName: TestCandidateReceiveVoteFromAllNodesAndConvertToLeaderAndSendInitialAppendEntriesRPC()
 
         Problem Found:

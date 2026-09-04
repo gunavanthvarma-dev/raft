@@ -88,7 +88,7 @@ Tests:-
 1. Reach ElectionTimeout and Trigger Election, node changes status to Candidate and sends request vote to peers -- Done
 2. Node receives valid requestVote, checks if its valid and sends response True -- Done
 3. Node receives invalid requestVote, checks if its valid and sends response False  -- Done
-4. Node receives all valid requestVote response, gets majority
+4. Node receives all valid requestVote response, gets majority -- Done
 5. Node receives a duplicate vote from a peer; check if its idempotent 
 6. Node receives non majority valid requestVote response, check if it does not have a majority, it still stays in Candidate 
 7. Node receives some invalid requestVote response and moslty valid requestVote, check if it got majority   
