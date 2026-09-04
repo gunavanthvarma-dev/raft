@@ -25,8 +25,8 @@ type RaftNode struct {
 	ElectionTimeout  uint64 // random election timeout threshold
 	ElectionElapsed  uint64 //ticks since hearing from the leader
 	NodeStatus       RaftState
-	HeartbeatElapsed uint64 //ticks since last haertbeat; for leader
-	HeartbeatTimeout uint64 // frequency of heartbeats; for leader
+	HeartbeatElapsed uint64              //ticks since last haertbeat; for leader
+	HeartbeatTimeout uint64              // frequency of heartbeats; for leader
 	ElectionVotes    map[uint64]struct{} //count votes during election // its a set to make it idempotent
 	//persistent state
 	currentTerm uint64 // latest term server has seen(default 0 at boot)
@@ -493,31 +493,35 @@ func (node *RaftNode) ProcessNetworkMessage(msg Message) {
 		}
 
 	case RequestVoteResponse:
-		switch node.NodeStatus {
-		case Follower:
-		//Ignore or send a msg?
-		case Candidate:
-			if msg.VoteGranted == true {
-				node.ElectionVotes[uint64(msg.FromNodeId)] = struct{}{}
+		if msg.Term < node.currentTerm {
+			// log it
+		} else {
+			switch node.NodeStatus {
+			case Follower:
+				//Ignore or send a msg?
+			case Candidate:
+				if msg.VoteGranted == true {
+					node.ElectionVotes[uint64(msg.FromNodeId)] = struct{}{}
+				}
+				if uint64(len(node.ElectionVotes)) > uint64((len(node.Peers)+1)/2) {
+					node.initializeLeader()
+					node.sendAppendEntries()
+					//log message
+					log.Printf("\nNodeId %d is Leader for term %d", node.CurrentNodeId, node.currentTerm)
+				}
+			case Leader:
+				//Ignore or send a msg?
 			}
-			if uint64(len(node.ElectionVotes)) > uint64((len(node.Peers)+1)/2) {
-				node.initializeLeader()
-				node.sendAppendEntries()
-				//log message
-				log.Printf("\nNodeId %d is Leader for term %d", node.CurrentNodeId, node.currentTerm)
-			}
-		case Leader:
-			//Ignore or send a msg?
 		}
 
 	}
 
 }
 
-func (node *RaftNode) initializeLeader(){
+func (node *RaftNode) initializeLeader() {
 	node.NodeStatus = Leader
-	for _,peerId := range node.Peers{
-		node.nextIndex[peerId] = node.getLastLogIndex()+1
+	for _, peerId := range node.Peers {
+		node.nextIndex[peerId] = node.getLastLogIndex() + 1
 		node.matchIndex[peerId] = uint64(0)
 	}
 }

@@ -61,6 +61,11 @@
         Problem Found: 
             --> So the RaftNode should reject any requestVoteResponse msg that is from an older term; but electionVotes does get updated which breaks $5.1. 
 
+            --> So I forgot to add a check for msg.term < node.term for RequestVoteResponse msg processing
+
+        Solution:
+            --> add a if condition that checks if the msg term is less than current nodes term
+
 5. TestName: TestCandidateReceiveVoteFromAllNodesAndConvertToLeaderAndSendInitialAppendEntriesRPC()
 
         Problem Found:
