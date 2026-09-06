@@ -95,4 +95,10 @@
             --> initailze values with last log entry of the leader+1 upon election [mentioned in volatile state of leaders] 
                                         
 
+6. TestName: TestCandidateReceivesRequestVoteFromCandidateWithHigherTermConvertsToFollower()
 
+        Problem Found:
+            --> When a follower node sends RequestVoteResponse as true; it didnt update its votedFor state variable to reflect who it voted for
+        
+        Solution:
+            --> update votedFor in RequestVoteResponseTrue()

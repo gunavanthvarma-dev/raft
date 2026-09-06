@@ -290,7 +290,14 @@ func (node *RaftNode) RequestVoteResponseTrue(destNodeId NodeId) {
 		Term:        node.currentTerm,
 		VoteGranted: true,
 	}
+	node.votedFor = destNodeId
 	node.serverTasks.Messages = append(node.serverTasks.Messages, *msg)
+}
+
+func (node *RaftNode) SwitchToFollower() {
+	node.NodeStatus = Follower
+	node.ElectionElapsed = 0
+	node.votedFor = 0
 }
 
 func (node *RaftNode) ProcessNetworkMessage(msg Message) {
@@ -375,8 +382,9 @@ func (node *RaftNode) ProcessNetworkMessage(msg Message) {
 	//				Ignore it
 
 	if msg.Term > node.currentTerm {
-		node.NodeStatus = Follower
-		node.leaderId = msg.FromNodeId // shoudnt this be like, the node that sent the msg should include the node it thinks is the leader? instead of assuming the message is sent by the leader
+		//node.NodeStatus = Follower
+		//node.leaderId = msg.FromNodeId // shoudnt this be like, the node that sent the msg should include the node it thinks is the leader? instead of assuming the message is sent by the leader
+		node.SwitchToFollower()
 	}
 
 	switch msg.Type {

@@ -377,3 +377,37 @@ func TestCandidateNodeReceivesAppendEntriesFromCurrentTermLeaderAndBecomesFollow
 	assert.Equal(t, true, tasksNext.Messages[len(tasksNext.Messages)-1].Success)
 	assert.Equal(t, uint64(0), tasksNext.Messages[len(tasksNext.Messages)-1].LastEntryIndex)
 }
+
+func TestCandidateReceivesRequestVoteFromCandidateWithHigherTermConvertsToFollower(t *testing.T) {
+	timeoutGen := NewFixedTimeoutGenerator(3)
+	testNode := NewRaftNode(1, []NodeId{2, 3, 4, 5}, 3, 6, timeoutGen)
+
+	testNode.Tick()
+	testNode.Ready()
+	testNode.Advance()
+
+	testNode.Tick()
+	testNode.Ready()
+	testNode.Advance()
+
+	testNode.Tick()
+	tasks := testNode.Ready()
+	testNode.Advance()
+
+	require.Equal(t, uint64(1), testNode.currentTerm)
+	require.Equal(t, 4, len(tasks.Messages))
+	require.Equal(t, uint64(1), tasks.Messages[len(tasks.Messages)-1].Term)
+
+	reqVote := &Message{Type: 0, FromNodeId: 2, ToNodeId: 1, Term: 2, CandidateId: 2, LastLogIndex: 0, LastLogTerm: 0}
+
+	testNode.ProcessNetworkMessage(*reqVote)
+	tasksNext := testNode.Ready()
+	testNode.Advance()
+
+	assert.Equal(t, Follower, testNode.NodeStatus)
+	assert.Equal(t, NodeId(2), testNode.votedFor)
+	assert.Equal(t, 1, len(tasksNext.Messages))
+	assert.Equal(t, RequestVoteResponse, tasksNext.Messages[len(tasksNext.Messages)-1].Type)
+	assert.Equal(t, true, tasksNext.Messages[len(tasksNext.Messages)-1].VoteGranted)
+
+}

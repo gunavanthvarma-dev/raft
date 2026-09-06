@@ -94,9 +94,10 @@ Tests:-
 7. Node receives some invalid requestVote response and moslty valid requestVote, check if it got majority  -- 6 checks it
 8. Node receives mostly invalid requestVote response, check if it does not have a majority, it still stays in Candidate -- 6 chceks it
 9. Node in Candidate mode, hits electionTimeout if it does not get enough votes in time and starts new election -- Done
-10. Candidate Node receives a AppendEntriesRPC with a term greater than current term; convert to follower
-11. Candidate Node receives a AppendEntriesRPC with a term greater than current term; convert to follower
+10. Candidate Node receives a AppendEntriesRPC from a Leader with the current term; convert to follower -- Done
+11. Candidate Node receives a RequestVoteRPC with a term greater than current term; convert to follower -- done
+12. Candidate Node receives a RequestVoteRPC from another candidate node with same term; check if it sends false
 12. Node receives RequestVoteResponse with a lesser term; check if it rejects it --- done; verify
 13. Leader Node receives RequestVoteResponse after election completion; check if it rejects it
-14. Node elected Leader; check if it sends initial appendEntries to all the peers; check matchIndex and nextIndex initialization
-11. 
+Node elected Leader; check if it sends initial appendEntries to all the peers; check matchIndex and nextIndex initialization
+ 
