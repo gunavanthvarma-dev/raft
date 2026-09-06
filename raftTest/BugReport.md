@@ -66,6 +66,19 @@
         Solution:
             --> add a if condition that checks if the msg term is less than current nodes term
 
+8. TestCandidateNodeReceivesAppendEntriesFromCurrentTermLeaderAndBecomesFollower()
+
+        Problem Found:
+            --> When the Candidate receives AppendEntriesRPC; it just changes the state to Follower but does not process the message as follower again
+        Solution:
+            --> call ProcessNetworkMessage(msg) again inside Candidate block; so the AppendEntries is processed twice; first as a Candidate and then as a Follower by the same node
+
+        Problem Found:
+            --> AppendEntriesFalse was fired even when the pre-conditions were right. node.log[msg.PrevLogIndex].Term != msg.Term; So instead of comparing the Prevlogterms of the last log in the follower's log and the leader's log; it was comparing the follower's prevLogterm and the current msg's term
+
+        Solution:
+            --> change msg.Term to msg.PrevLogTerm 
+
 5. TestName: TestCandidateReceiveVoteFromAllNodesAndConvertToLeaderAndSendInitialAppendEntriesRPC()
 
         Problem Found:

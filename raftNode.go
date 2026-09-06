@@ -255,6 +255,9 @@ func (node *RaftNode) appendEntriesResponseTrue(lastEntryIndex uint64) {
 func (node *RaftNode) RemoveEntriesAndAppend(entries []LogEntry) {
 
 	//remove entries from entries[0].index till end
+	if len(entries) == 0 {
+		return
+	}
 	tempLog := node.log[:entries[0].Index]
 	for _, val := range entries {
 		tempLog[val.Index] = val
@@ -391,18 +394,18 @@ func (node *RaftNode) ProcessNetworkMessage(msg Message) {
 			//append msg.entries
 			// build entriestoPersist; add to ServerTasks;
 
-			if len(msg.Entries) == 0 {
-				//heartbeat
-				node.ElectionElapsed = 0
-				// persistent state variables
-				node.serverTasks.State.currentTerm = node.currentTerm
-				node.serverTasks.State.votedFor = node.votedFor
-				break
-			}
-			if msg.Term < node.currentTerm || msg.PrevLogIndex > uint64(len(node.log)) || node.log[msg.PrevLogIndex].Term != msg.Term {
+			// if len(msg.Entries) == 0 {
+			// 	//heartbeat
+			// 	node.ElectionElapsed = 0
+			// 	// persistent state variables
+			// 	node.serverTasks.State.currentTerm = node.currentTerm
+			// 	node.serverTasks.State.votedFor = node.votedFor
+			// }
+			if msg.Term < node.currentTerm || msg.PrevLogIndex > uint64(len(node.log)) || node.log[msg.PrevLogIndex].Term != msg.PrevLogTerm {
 				node.appendEntriesResponseFalse(msg.FromNodeId)
 			} else {
 				node.leaderCommit = msg.LeaderCommit
+				node.leaderId = msg.LeaderId
 				node.RemoveEntriesAndAppend(msg.Entries)
 				node.AddEntriesToPersist()
 				node.ElectionElapsed = 0
@@ -414,11 +417,9 @@ func (node *RaftNode) ProcessNetworkMessage(msg Message) {
 				node.appendEntriesResponseFalse(msg.FromNodeId)
 			} else {
 				//A leader has been elected, convert to follower
-				node.leaderCommit = msg.LeaderCommit
+				//node.leaderCommit = msg.LeaderCommit
 				node.NodeStatus = Follower
-				node.ElectionElapsed = 0
-				node.serverTasks.State.currentTerm = node.currentTerm
-				node.serverTasks.State.votedFor = node.votedFor
+				node.ProcessNetworkMessage(msg) //same message will be processed as a follower
 				// do I have to rest anything?
 			}
 		case Leader:
