@@ -97,7 +97,9 @@ Tests:-
 10. Candidate Node receives a AppendEntriesRPC from a Leader with the current term; convert to follower -- Done
 11. Candidate Node receives a RequestVoteRPC with a term greater than current term; convert to follower -- done
 12. Candidate Node receives a RequestVoteRPC from another candidate node with same term; check if it sends false --done 
-12. Node receives RequestVoteResponse with a lesser term; check if it rejects it --- done; verify
-13. Leader Node receives RequestVoteResponse after election completion; check if it rejects it
-Node elected Leader; check if it sends initial appendEntries to all the peers; check matchIndex and nextIndex initialization
+13. Node receives RequestVoteResponse with a lesser term; check if it rejects it --- done; verify
+
+
+14. Leader Node receives RequestVoteResponse after election completion; check if it rejects it
+15. 
  

@@ -8,6 +8,20 @@ import (
 	//"github.com/stretchr/testify/require"
 )
 
+func createLeader(targetTerm uint64, nodeId NodeId, logtoAppend []LogEntry, peers []NodeId, electionTimeout uint64, heartbeatTimeout uint64, timeoutgen TimeoutGenerator, commitIndex uint64, lastApplied uint64, logindex uint64, matchIndex map[NodeId]uint64, nextIndex map[NodeId]uint64) *RaftNode {
+	leader := NewRaftNode(nodeId, peers, electionTimeout, heartbeatTimeout, timeoutgen)
+	leader.currentTerm = targetTerm
+	leader.log = append(leader.log, logtoAppend...)
+	leader.commitIndex = commitIndex
+	leader.lastApplied = lastApplied
+	leader.logIndex = logindex
+	leader.votedFor = nodeId
+	leader.matchIndex = matchIndex
+	leader.nextIndex = nextIndex
+	leader.NodeStatus = Leader
+	return leader
+}
+
 func TestElectionTimeoutStartsElection(t *testing.T) {
 
 	timeoutGen := NewFixedTimeoutGenerator(3)
