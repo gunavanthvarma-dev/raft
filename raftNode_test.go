@@ -22,6 +22,18 @@ func createLeader(targetTerm uint64, nodeId NodeId, logtoAppend []LogEntry, peer
 	return leader
 }
 
+func createFollower(targetTerm uint64, nodeId NodeId, logtoAppend []LogEntry, peers []NodeId, electionTimeout uint64, heartbeatTimeout uint64, timeoutgen TimeoutGenerator, commitIndex uint64, lastApplied uint64, logindex uint64, votedFor NodeId) *RaftNode {
+	follower := NewRaftNode(nodeId, peers, electionTimeout, heartbeatTimeout, timeoutgen)
+	follower.currentTerm = targetTerm
+	follower.log = append(follower.log, logtoAppend...)
+	follower.commitIndex = commitIndex
+	follower.lastApplied = lastApplied
+	follower.logIndex = logindex
+	follower.votedFor = votedFor
+	follower.NodeStatus = Leader
+	return follower
+}
+
 func TestElectionTimeoutStartsElection(t *testing.T) {
 
 	timeoutGen := NewFixedTimeoutGenerator(3)
