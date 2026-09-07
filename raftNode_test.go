@@ -30,8 +30,20 @@ func createFollower(targetTerm uint64, nodeId NodeId, logtoAppend []LogEntry, pe
 	follower.lastApplied = lastApplied
 	follower.logIndex = logindex
 	follower.votedFor = votedFor
-	follower.NodeStatus = Leader
+	follower.NodeStatus = Follower
 	return follower
+}
+
+func createCandidate(targetTerm uint64, nodeId NodeId, logtoAppend []LogEntry, peers []NodeId, electionTimeout uint64, heartbeatTimeout uint64, timeoutgen TimeoutGenerator, commitIndex uint64, lastApplied uint64, logindex uint64) *RaftNode {
+	candidate := NewRaftNode(nodeId, peers, electionTimeout, heartbeatTimeout, timeoutgen)
+	candidate.currentTerm = targetTerm - 1 // this term should be less than the required term; as the first tick for this node; will change to Candidate; and send RequestVote
+	candidate.ElectionElapsed = electionTimeout - 1
+	candidate.log = append(candidate.log, logtoAppend...)
+	candidate.commitIndex = commitIndex
+	candidate.lastApplied = lastApplied
+	candidate.logIndex = logindex
+	candidate.NodeStatus = Follower
+	return candidate
 }
 
 func TestElectionTimeoutStartsElection(t *testing.T) {
