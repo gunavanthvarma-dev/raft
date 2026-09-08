@@ -529,3 +529,30 @@ func TestLeaderStateInitializationAfterElection(t *testing.T) {
 	assert.Equal(t, uint64(1), leader.nextIndex[5])
 
 }
+
+func TestLeaderRejectsRequestVoteResponseAfterElection(t *testing.T) {
+	timeoutGen := NewFixedTimeoutGenerator(4)
+	peers := []NodeId{2, 3, 4, 5}
+	matchIndex := make(map[NodeId]uint64, 4)
+	matchIndex[2] = 0
+	matchIndex[3] = 0
+	matchIndex[4] = 0
+	matchIndex[5] = 0
+	nextIndex := make(map[NodeId]uint64, 4)
+
+	matchIndex[2] = 1
+	matchIndex[3] = 1
+	matchIndex[4] = 1
+	matchIndex[5] = 1
+
+	leader := createExistingLeader(1, 1, make([]LogEntry, 0), peers, 4, 2, timeoutGen, 0, 0, 1, matchIndex, nextIndex)
+
+	reqVoteResp := Message{Type: RequestVoteResponse, FromNodeId: 5, ToNodeId: 1, Term: 1, VoteGranted: true}
+
+	leader.ProcessNetworkMessage(reqVoteResp)
+	tasks := leader.Ready()
+	leader.Advance()
+
+	assert.Equal(t, Leader, leader.NodeStatus)
+	assert.Equal(t, 0, len(tasks.Messages))
+}

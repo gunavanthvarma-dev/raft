@@ -99,7 +99,7 @@ Tests:-
 12. Candidate Node receives a RequestVoteRPC from another candidate node with same term; check if it sends false --done 
 13. Node receives RequestVoteResponse with a lesser term; check if it rejects it --- done; verify
 
-14. Verify Leader initializes nextIndex, matchIndex
+14. Verify Leader initializes nextIndex, matchIndex -- Done
 15. Leader Node receives RequestVoteResponse after election completion; check if it rejects it 
 16. Leader sends heartbeat to all peers when Heartbeat timeout elapses
 17. 
