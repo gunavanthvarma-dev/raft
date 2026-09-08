@@ -32,7 +32,7 @@ func createNewLeader(targetTerm uint64, nodeId NodeId, logtoAppend []LogEntry, p
 	node.NodeStatus = Candidate
 	node.ElectionElapsed = electionTimeout - 1
 	for idx := range (len(peers) + 1) / 2 {
-		reqVoteResp := Message{Type: RequestVoteResponse, FromNodeId: peers[idx], ToNodeId: nodeId, VoteGranted: true}
+		reqVoteResp := Message{Type: RequestVoteResponse, FromNodeId: peers[idx], Term: 1, ToNodeId: nodeId, VoteGranted: true}
 		node.ProcessNetworkMessage(reqVoteResp)
 		node.Ready()
 		node.Advance()
@@ -498,5 +498,34 @@ func TestCandidateReceivesRequestVoteRequestFromAnotherCandidateWithSameTermAndS
 	assert.Equal(t, 1, len(tasksNext.Messages))
 	assert.Equal(t, RequestVoteResponse, tasksNext.Messages[len(tasksNext.Messages)-1].Type)
 	assert.Equal(t, false, tasksNext.Messages[len(tasksNext.Messages)-1].VoteGranted)
+
+}
+
+func TestLeaderStateInitializationAfterElection(t *testing.T) {
+	timeoutGen := NewFixedTimeoutGenerator(4)
+	peers := []NodeId{2, 3, 4, 5}
+	leader := createNewLeader(1, 1, make([]LogEntry, 0), peers, 4, 2, timeoutGen, 0, 0, 1)
+
+	reqVoteResp := Message{Type: RequestVoteResponse, FromNodeId: peers[len(peers)-1], ToNodeId: 1, Term: 1, VoteGranted: true}
+	leader.ProcessNetworkMessage(reqVoteResp)
+	tasks := leader.Ready()
+	leader.Advance()
+
+	require.Equal(t, Leader, leader.NodeStatus)
+	require.Equal(t, uint64(1), leader.currentTerm)
+
+	assert.Equal(t, 4, len(tasks.Messages))
+	assert.NotEmpty(t, leader.matchIndex)
+	assert.NotEmpty(t, leader.nextIndex)
+
+	assert.Equal(t, uint64(0), leader.matchIndex[2])
+	assert.Equal(t, uint64(0), leader.matchIndex[3])
+	assert.Equal(t, uint64(0), leader.matchIndex[4])
+	assert.Equal(t, uint64(0), leader.matchIndex[5])
+
+	assert.Equal(t, uint64(1), leader.nextIndex[2])
+	assert.Equal(t, uint64(1), leader.nextIndex[3])
+	assert.Equal(t, uint64(1), leader.nextIndex[4])
+	assert.Equal(t, uint64(1), leader.nextIndex[5])
 
 }
