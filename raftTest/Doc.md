@@ -100,8 +100,8 @@ Tests:-
 13. Node receives RequestVoteResponse with a lesser term; check if it rejects it --- done; verify
 
 14. Verify Leader initializes nextIndex, matchIndex -- Done
-15. Leader Node receives RequestVoteResponse after election completion; check if it rejects it 
-16. Leader sends heartbeat to all peers when Heartbeat timeout elapses
+15. Leader Node receives RequestVoteResponse after election completion; check if it rejects it  -- done; verify
+16. Leader sends heartbeat to all peers when Heartbeat timeout elapses -- done; verify
 17. 
 
  

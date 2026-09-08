@@ -556,3 +556,43 @@ func TestLeaderRejectsRequestVoteResponseAfterElection(t *testing.T) {
 	assert.Equal(t, Leader, leader.NodeStatus)
 	assert.Equal(t, 0, len(tasks.Messages))
 }
+
+func TestLeaderSendsHeartbeatAfterHeartbeatTimeout(t *testing.T) {
+	timeoutGen := NewFixedTimeoutGenerator(4)
+	peers := []NodeId{2, 3, 4, 5}
+	matchIndex := make(map[NodeId]uint64, 4)
+	matchIndex[2] = 0
+	matchIndex[3] = 0
+	matchIndex[4] = 0
+	matchIndex[5] = 0
+	nextIndex := make(map[NodeId]uint64, 4)
+
+	nextIndex[2] = 1
+	nextIndex[3] = 1
+	nextIndex[4] = 1
+	nextIndex[5] = 1
+
+	leader := createExistingLeader(1, 1, make([]LogEntry, 0), peers, 4, 2, timeoutGen, 0, 0, 1, matchIndex, nextIndex)
+
+	leader.Tick()
+	tasks := leader.Ready()
+	leader.Advance()
+
+	require.Equal(t, 0, len(tasks.Messages))
+	require.Equal(t, uint64(1), leader.HeartbeatElapsed)
+	require.Equal(t, uint64(2), leader.HeartbeatTimeout)
+
+	leader.Tick()
+	tasks = leader.Ready()
+	leader.Advance()
+
+	assert.Equal(t, uint64(0), leader.HeartbeatElapsed)
+	assert.Equal(t, 4, len(tasks.Messages))
+	assert.Equal(t, AppendEntriesRequest, tasks.Messages[len(tasks.Messages)-1].Type)
+	assert.Equal(t, uint64(1), tasks.Messages[len(tasks.Messages)-1].Term)
+	assert.Equal(t, NodeId(1), tasks.Messages[len(tasks.Messages)-1].LeaderId)
+	assert.Equal(t, uint64(0), tasks.Messages[len(tasks.Messages)-1].PrevLogIndex)
+	assert.Equal(t, uint64(0), tasks.Messages[len(tasks.Messages)-1].PrevLogTerm)
+	assert.Equal(t, 0, len(tasks.Messages[len(tasks.Messages)-1].Entries))
+	assert.Equal(t, uint64(0), tasks.Messages[len(tasks.Messages)-1].LeaderCommit)
+}
