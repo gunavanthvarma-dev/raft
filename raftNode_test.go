@@ -8,7 +8,7 @@ import (
 	//"github.com/stretchr/testify/require"
 )
 
-func createLeader(targetTerm uint64, nodeId NodeId, logtoAppend []LogEntry, peers []NodeId, electionTimeout uint64, heartbeatTimeout uint64, timeoutgen TimeoutGenerator, commitIndex uint64, lastApplied uint64, logindex uint64, matchIndex map[NodeId]uint64, nextIndex map[NodeId]uint64) *RaftNode {
+func createExistingLeader(targetTerm uint64, nodeId NodeId, logtoAppend []LogEntry, peers []NodeId, electionTimeout uint64, heartbeatTimeout uint64, timeoutgen TimeoutGenerator, commitIndex uint64, lastApplied uint64, logindex uint64, matchIndex map[NodeId]uint64, nextIndex map[NodeId]uint64) *RaftNode {
 	leader := NewRaftNode(nodeId, peers, electionTimeout, heartbeatTimeout, timeoutgen)
 	leader.currentTerm = targetTerm
 	leader.log = append(leader.log, logtoAppend...)
@@ -20,6 +20,24 @@ func createLeader(targetTerm uint64, nodeId NodeId, logtoAppend []LogEntry, peer
 	leader.nextIndex = nextIndex
 	leader.NodeStatus = Leader
 	return leader
+}
+
+func createNewLeader(targetTerm uint64, nodeId NodeId, logtoAppend []LogEntry, peers []NodeId, electionTimeout uint64, heartbeatTimeout uint64, timeoutgen TimeoutGenerator, commitIndex uint64, lastApplied uint64, logindex uint64) *RaftNode {
+	node := NewRaftNode(nodeId, peers, electionTimeout, heartbeatTimeout, timeoutgen)
+	node.currentTerm = targetTerm
+	node.log = append(node.log, logtoAppend...)
+	node.commitIndex = commitIndex
+	node.logIndex = logindex
+	node.votedFor = nodeId
+	node.NodeStatus = Candidate
+	node.ElectionElapsed = electionTimeout - 1
+	for idx := range (len(peers) + 1) / 2 {
+		reqVoteResp := Message{Type: RequestVoteResponse, FromNodeId: peers[idx], ToNodeId: nodeId, VoteGranted: true}
+		node.ProcessNetworkMessage(reqVoteResp)
+		node.Ready()
+		node.Advance()
+	}
+	return node
 }
 
 func createFollower(targetTerm uint64, nodeId NodeId, logtoAppend []LogEntry, peers []NodeId, electionTimeout uint64, heartbeatTimeout uint64, timeoutgen TimeoutGenerator, commitIndex uint64, lastApplied uint64, logindex uint64, votedFor NodeId) *RaftNode {
