@@ -220,9 +220,10 @@ func (node *RaftNode) ProcessClientRequest(req ClientRequest) {
 		node.serverTasks.Messages = append(node.serverTasks.Messages, *msg)
 
 	case Leader:
-		node.logIndex += 1
 		logEntry := &LogEntry{Index: node.logIndex, Term: node.currentTerm, Command: req.Data}
 		node.log = append(node.log, *logEntry)
+		node.logIndex += 1
+		node.majority = 1
 		node.serverTasks.EntriesToPersist = append(node.serverTasks.EntriesToPersist, *logEntry)
 		node.sendAppendEntries() //send AppendEntriesRPC to all followers
 	}
@@ -543,9 +544,12 @@ func (node *RaftNode) Ready() ServerTasks {
 	if node.commitIndex > node.lastApplied {
 		node.serverTasks.EntriesToApply = append(node.serverTasks.EntriesToApply, node.log[node.lastApplied+1])
 	}
-	for _, val := range node.serverTasks.EntriesToPersist {
-		node.appendEntriesResponseTrue(val.Index)
+	if node.NodeStatus == Follower {
+		for _, val := range node.serverTasks.EntriesToPersist {
+			node.appendEntriesResponseTrue(val.Index)
+		}
 	}
+
 	return *node.serverTasks
 }
 

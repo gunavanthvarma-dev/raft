@@ -625,3 +625,42 @@ func TestLeaderReceivesRequestVoteFromCandidateWithHigherTermConvertsToFollower(
 	assert.Equal(t, RequestVoteResponse, tasks.Messages[len(tasks.Messages)-1].Type)
 	assert.Equal(t, true, tasks.Messages[len(tasks.Messages)-1].VoteGranted)
 }
+
+func TestLeaderReceivesClientRequestAppendsToLogSendsAppendEntries(t *testing.T) {
+	timeoutGen := NewFixedTimeoutGenerator(4)
+	peers := []NodeId{2, 3, 4, 5}
+	matchIndex := make(map[NodeId]uint64, 4)
+	matchIndex[2] = 0
+	matchIndex[3] = 0
+	matchIndex[4] = 0
+	matchIndex[5] = 0
+	nextIndex := make(map[NodeId]uint64, 4)
+
+	nextIndex[2] = 1
+	nextIndex[3] = 1
+	nextIndex[4] = 1
+	nextIndex[5] = 1
+
+	leader := createExistingLeader(1, 1, make([]LogEntry, 0), peers, 4, 2, timeoutGen, 0, 0, 1, matchIndex, nextIndex)
+
+	clientReq := ClientRequest{Data: make([]byte, 0)}
+
+	require.Equal(t, uint64(1), leader.logIndex)
+	require.Equal(t, 1, len(leader.log))
+
+	leader.ProcessClientRequest(clientReq)
+	tasks := leader.Ready()
+
+	assert.Equal(t, uint64(2), leader.logIndex)
+	assert.Equal(t, 2, len(leader.log))
+	assert.Equal(t, 1, len(tasks.EntriesToPersist))
+	assert.Equal(t, uint64(1), tasks.EntriesToPersist[len(tasks.EntriesToPersist)-1].Index)
+	assert.Equal(t, leader.currentTerm, tasks.EntriesToPersist[len(tasks.EntriesToPersist)-1].Term)
+	assert.Equal(t, clientReq.Data, tasks.EntriesToPersist[len(tasks.EntriesToPersist)-1].Command)
+	assert.Equal(t, 4, len(tasks.Messages))
+	assert.Equal(t, AppendEntriesRequest, tasks.Messages[len(tasks.Messages)-1].Type)
+	assert.Equal(t, uint64(1), leader.majority)
+
+	leader.Advance()
+
+}

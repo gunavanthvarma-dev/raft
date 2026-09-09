@@ -102,3 +102,23 @@
         
         Solution:
             --> update votedFor in RequestVoteResponseTrue()
+
+7. TestName: TestLeaderReceivesClientRequestAppendsToLogSendsAppendEntries()
+
+        Problem Found: 
+            --> leader log index was 1 and the log entry should be appended at Index 1 instead it occured at Index 2. Because the node.logIndex += 1 happened before the log entry as appended
+
+        Solution:
+            --> Move node.logIndex += 1 after the log entry is appended
+
+        Problem Found:
+            --> in Ready(); appendEntriesResponse is built for all entries that has been persisted by the node. Problem was that function was called even by the Leader node when it should only be called by the Follower
+
+        Solution:
+            --> Added an if condition which checks whether the current node is a Follower
+        
+        Problem Found:
+            --> when a leader sends appendEntries after receiving a client request; the majority tracker is not updated to include the leader's vote
+
+        Solution:
+            --> update majority by 1 to include the leader's vote before sending appendEntries to followers
