@@ -596,3 +596,32 @@ func TestLeaderSendsHeartbeatAfterHeartbeatTimeout(t *testing.T) {
 	assert.Equal(t, 0, len(tasks.Messages[len(tasks.Messages)-1].Entries))
 	assert.Equal(t, uint64(0), tasks.Messages[len(tasks.Messages)-1].LeaderCommit)
 }
+
+func TestLeaderReceivesRequestVoteFromCandidateWithHigherTermConvertsToFollower(t *testing.T) {
+	timeoutGen := NewFixedTimeoutGenerator(4)
+	peers := []NodeId{2, 3, 4, 5}
+	matchIndex := make(map[NodeId]uint64, 4)
+	matchIndex[2] = 0
+	matchIndex[3] = 0
+	matchIndex[4] = 0
+	matchIndex[5] = 0
+	nextIndex := make(map[NodeId]uint64, 4)
+
+	nextIndex[2] = 1
+	nextIndex[3] = 1
+	nextIndex[4] = 1
+	nextIndex[5] = 1
+
+	leader := createExistingLeader(1, 1, make([]LogEntry, 0), peers, 4, 2, timeoutGen, 0, 0, 1, matchIndex, nextIndex)
+
+	reqVote := Message{Type: RequestVoteRequest, FromNodeId: 2, ToNodeId: 1, CandidateId: 2, PrevLogIndex: 0, PrevLogTerm: 1, Term: 2}
+
+	leader.ProcessNetworkMessage(reqVote)
+	tasks := leader.Ready()
+	leader.Advance()
+
+	assert.Equal(t, Follower, leader.NodeStatus)
+	assert.Equal(t, 1, len(tasks.Messages))
+	assert.Equal(t, RequestVoteResponse, tasks.Messages[len(tasks.Messages)-1].Type)
+	assert.Equal(t, true, tasks.Messages[len(tasks.Messages)-1].VoteGranted)
+}
