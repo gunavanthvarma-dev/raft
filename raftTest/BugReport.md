@@ -122,3 +122,11 @@
 
         Solution:
             --> update majority by 1 to include the leader's vote before sending appendEntries to followers
+
+8. TestName: TestLeaderGetsMajorityAppendEntriesResponseAndAdvancesCommitIndexAndAppliesToStateMachine()
+
+        Problem Found: 
+            --> When the leader gets an appendEntriesRespTrue from a follower; the majority count is not updated and also there is no condition that checks if the majority has been reached and update the commitIndex. Also need to change majority variable from uint64 to a Set of Nodeids to account for duplicate responses.
+
+        Solution:
+            --> Changed majority from uint64 to Set for idempotency and added a check for majority AppendEntriesResp and then update commitIndex

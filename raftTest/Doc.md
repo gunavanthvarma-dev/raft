@@ -103,7 +103,7 @@ Tests:-
 15. Leader Node receives RequestVoteResponse after election completion; check if it rejects it  -- done; verify
 16. Leader sends heartbeat to all peers when Heartbeat timeout elapses -- done; verify
 17. Leader receives RequestVote from Candidate with higher term; converts to Follower -- done
-18. Leader receives Client Message; appends entry to its log and send appendEntries to all peers
+18. Leader receives Client Message; appends entry to its log and send appendEntries to all peers -- done; verify
 19. Leader waits for majority appendEntries Response; advances commitIndex; applies to State machine
 
 

@@ -19,6 +19,7 @@ func createExistingLeader(targetTerm uint64, nodeId NodeId, logtoAppend []LogEnt
 	leader.matchIndex = matchIndex
 	leader.nextIndex = nextIndex
 	leader.NodeStatus = Leader
+	leader.majority = make(map[NodeId]struct{})
 	return leader
 }
 
@@ -661,6 +662,59 @@ func TestLeaderReceivesClientRequestAppendsToLogSendsAppendEntries(t *testing.T)
 	assert.Equal(t, AppendEntriesRequest, tasks.Messages[len(tasks.Messages)-1].Type)
 	assert.Equal(t, uint64(1), leader.majority)
 
+	leader.Advance()
+
+}
+
+func TestLeaderGetsMajorityAppendEntriesResponseAndAdvancesCommitIndexAndAppliesToStateMachine(t *testing.T) {
+	timeoutGen := NewFixedTimeoutGenerator(4)
+	peers := []NodeId{2, 3, 4, 5}
+	matchIndex := make(map[NodeId]uint64, 4)
+	matchIndex[2] = 0
+	matchIndex[3] = 0
+	matchIndex[4] = 0
+	matchIndex[5] = 0
+	nextIndex := make(map[NodeId]uint64, 4)
+
+	nextIndex[2] = 1
+	nextIndex[3] = 1
+	nextIndex[4] = 1
+	nextIndex[5] = 1
+
+	leader := createExistingLeader(1, 1, make([]LogEntry, 0), peers, 4, 2, timeoutGen, 0, 0, 1, matchIndex, nextIndex)
+
+	clientReq := ClientRequest{Data: make([]byte, 0)}
+
+	require.Equal(t, uint64(1), leader.logIndex)
+	require.Equal(t, 1, len(leader.log))
+
+	leader.ProcessClientRequest(clientReq)
+	leader.Ready()
+	leader.Advance()
+
+	leader.Tick()
+	leader.Ready()
+	leader.Advance()
+
+	appendEntriesResp1 := Message{Type: AppendEntriesResponse, FromNodeId: 2, ToNodeId: 1, Term: leader.currentTerm, Success: true, LastEntryIndex: 1}
+	appendEntriesResp2 := Message{Type: AppendEntriesResponse, FromNodeId: 3, ToNodeId: 1, Term: leader.currentTerm, Success: true, LastEntryIndex: 1}
+
+	leader.ProcessNetworkMessage(appendEntriesResp1)
+	leader.Ready()
+	leader.Advance()
+
+	assert.Equal(t, 2, len(leader.majority))
+	assert.Equal(t, uint64(0), leader.commitIndex)
+
+	leader.ProcessNetworkMessage(appendEntriesResp2)
+	tasks := leader.Ready()
+
+	assert.Equal(t, 3, len(leader.majority))
+	assert.Equal(t, uint64(2), leader.logIndex)
+	assert.Equal(t, uint64(1), leader.commitIndex)
+	assert.Equal(t, 1, len(tasks.EntriesToApply))
+	assert.Equal(t, uint64(1), tasks.EntriesToApply[len(tasks.EntriesToApply)-1].Index)
+	assert.Equal(t, leader.currentTerm, tasks.EntriesToApply[len(tasks.EntriesToApply)-1].Term)
 	leader.Advance()
 
 }

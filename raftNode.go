@@ -43,8 +43,8 @@ type RaftNode struct {
 	matchIndex   map[NodeId]uint64 //for each server, index of the highest log entry known to be replicated on server
 	timeoutGen   TimeoutGenerator  //generate timeout
 	serverTasks  *ServerTasks
-	majority     uint64 //tracks the number of AppendEntriesResponse received to advance commitIndex
-	leaderCommit uint64 // leader's commitIndex
+	majority     map[NodeId]struct{} //tracks the number of AppendEntriesResponse received to advance commitIndex
+	leaderCommit uint64              // leader's commitIndex
 }
 
 //Methods:
@@ -223,7 +223,7 @@ func (node *RaftNode) ProcessClientRequest(req ClientRequest) {
 		logEntry := &LogEntry{Index: node.logIndex, Term: node.currentTerm, Command: req.Data}
 		node.log = append(node.log, *logEntry)
 		node.logIndex += 1
-		node.majority = 1
+		node.majority[node.CurrentNodeId] = struct{}{}
 		node.serverTasks.EntriesToPersist = append(node.serverTasks.EntriesToPersist, *logEntry)
 		node.sendAppendEntries() //send AppendEntriesRPC to all followers
 	}
@@ -463,8 +463,13 @@ func (node *RaftNode) ProcessNetworkMessage(msg Message) {
 				node.appendEntriesResponseFalse(msg.FromNodeId)
 			} else {
 				if msg.Success == true {
+					node.majority[msg.FromNodeId] = struct{}{}
 					node.nextIndex[msg.FromNodeId] += msg.LastEntryIndex + 1
 					node.matchIndex[msg.FromNodeId] = msg.LastEntryIndex
+					if len(node.majority) > (len(node.Peers)+1)/2 {
+						node.commitIndex += 1
+						node.leaderCommit = node.commitIndex
+					}
 				} else {
 					node.nextIndex[msg.FromNodeId] -= 1
 					node.sendAppendEntries()
@@ -530,6 +535,7 @@ func (node *RaftNode) ProcessNetworkMessage(msg Message) {
 
 func (node *RaftNode) initializeLeader() {
 	node.NodeStatus = Leader
+	node.majority = make(map[NodeId]struct{})
 	for _, peerId := range node.Peers {
 		node.nextIndex[peerId] = node.getLastLogIndex() + 1
 		node.matchIndex[peerId] = uint64(0)
