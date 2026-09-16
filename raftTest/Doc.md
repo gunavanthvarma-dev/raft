@@ -104,7 +104,17 @@ Tests:-
 16. Leader sends heartbeat to all peers when Heartbeat timeout elapses -- done; verify
 17. Leader receives RequestVote from Candidate with higher term; converts to Follower -- done
 18. Leader receives Client Message; appends entry to its log and send appendEntries to all peers -- done; verify
-19. Leader waits for majority appendEntries Response; advances commitIndex; applies to State machine
+19. Leader waits for majority appendEntries Response; advances commitIndex; applies to State machine -- done
+
+20. New node that starts up; default to Follower
+21. Follower recives RequestVote with greater term and votedFor is null; sends RequestVoteTrue
+22. Follower recives RequestVote with lesser term and votedFor is null; sends RequestVoteFalse
+23. Follower recives RequestVote with equal term and votedFor is null; sends RequestVoteFalse
+24. Follower recives RequestVote with greater term and votedFor is not null; sends RequestVoteFalse
+25. Follower receives AppendEntriesRequest with equal term from leader; append entries to log and persists it; sends appendEntriesRespTrue
+26. Follower receives AppendEntriesRequest with less term from leader; sends appendEntriesRespFalse
+27. Follower  
+
 
 
  

@@ -718,3 +718,7 @@ func TestLeaderGetsMajorityAppendEntriesResponseAndAdvancesCommitIndexAndApplies
 	leader.Advance()
 
 }
+
+func TestFollowerReceivesRequestVoteWithHigherTermAndVotedForIsNullSendsRequestVoteTrue(t *testing.T) {
+
+}
