@@ -109,11 +109,12 @@ Tests:-
 20. New node that starts up; default to Follower
 21. Follower recives RequestVote with greater term and votedFor is null; sends RequestVoteTrue -- done
 22. Follower recives RequestVote with lesser term and votedFor is null; sends RequestVoteFalse -- done
-23. Follower recives RequestVote with equal term and votedFor is null; sends RequestVoteFalse
-24. Follower recives RequestVote with greater term and votedFor is not null; sends RequestVoteTrue -- done
-25. Follower receives AppendEntriesRequest with equal term from leader; append entries to log and persists it; sends appendEntriesRespTrue
-26. Follower receives AppendEntriesRequest with less term from leader; sends appendEntriesRespFalse
-27. Follower  
+23. Follower recives RequestVote with equal term and votedFor is null; sends RequestVoteTrue -- Done
+24. Follower recives RequestVote with equal term and votedFor is not null and logterm doesnt match; sends RequestVoteFalse -- Done
+25. Follower recives RequestVote with greater term and votedFor is not null; sends RequestVoteTrue -- done
+26. Follower receives AppendEntriesRequest with equal term from leader; append entries to log and persists it; sends appendEntriesRespTrue
+27. Follower receives AppendEntriesRequest with less term from leader; sends appendEntriesRespFalse
+  
 
 
 

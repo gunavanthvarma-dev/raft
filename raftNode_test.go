@@ -784,3 +784,41 @@ func TestFollowerReceivesRequestVoteWithLesserTermAndVotedForIsNullSendsRequestV
 
 	follower.Advance()
 }
+
+func TestFollowerReceivesRequestVoteWithEqualTermAndVotedForIsNullSendsRequestVoteTrue(t *testing.T) {
+	timeoutGen := NewFixedTimeoutGenerator(4)
+	peers := []NodeId{2, 3, 4, 5}
+	follower := createFollower(1, 1, make([]LogEntry, 0), peers, 3, 3, timeoutGen, 0, 0, 1, 0)
+
+	reqVote := Message{Type: RequestVoteRequest, FromNodeId: 2, ToNodeId: 1, CandidateId: 2, PrevLogIndex: 0, PrevLogTerm: 1, Term: 1}
+
+	follower.ProcessNetworkMessage(reqVote)
+	tasks := follower.Ready()
+
+	assert.Equal(t, 1, len(tasks.Messages))
+	assert.Equal(t, RequestVoteResponse, tasks.Messages[len(tasks.Messages)-1].Type)
+	assert.Equal(t, NodeId(2), tasks.Messages[len(tasks.Messages)-1].ToNodeId)
+	assert.Equal(t, true, tasks.Messages[len(tasks.Messages)-1].VoteGranted)
+
+	follower.Advance()
+}
+
+func TestFollowerReceivesRequestVoteWithEqualTermAndVotedForIsNullAndPrevLogTermNoMatchSendsRequestVoteFalse(t *testing.T) {
+	timeoutGen := NewFixedTimeoutGenerator(4)
+	peers := []NodeId{2, 3, 4, 5}
+	log := make([]LogEntry, 1)
+	log[0] = LogEntry{Index: 1, Term: 2, Command: make([]byte, 0)}
+	follower := createFollower(2, 1, log, peers, 3, 3, timeoutGen, 0, 0, 1, 0)
+
+	reqVote := Message{Type: RequestVoteRequest, FromNodeId: 2, ToNodeId: 1, CandidateId: 2, PrevLogIndex: 0, PrevLogTerm: 1, Term: 2}
+
+	follower.ProcessNetworkMessage(reqVote)
+	tasks := follower.Ready()
+
+	assert.Equal(t, 1, len(tasks.Messages))
+	assert.Equal(t, RequestVoteResponse, tasks.Messages[len(tasks.Messages)-1].Type)
+	assert.Equal(t, NodeId(2), tasks.Messages[len(tasks.Messages)-1].ToNodeId)
+	assert.Equal(t, false, tasks.Messages[len(tasks.Messages)-1].VoteGranted)
+
+	follower.Advance()
+}
