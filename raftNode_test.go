@@ -8,6 +8,20 @@ import (
 	//"github.com/stretchr/testify/require"
 )
 
+// type NodeConfig struct{
+// 	CurrentNodeId NodeId
+//     peers []NodeId
+// 	TargetTerm uint64
+// 	electionTimeout uint64
+// 	heartbeatTimeout uint64
+// 	timeoutGen TimeoutGenerator
+
+// 	logToAppend []LogEntry
+// 	commitIndex uint64
+// 	lastApplied
+
+// }
+
 func createExistingLeader(targetTerm uint64, nodeId NodeId, logtoAppend []LogEntry, peers []NodeId, electionTimeout uint64, heartbeatTimeout uint64, timeoutgen TimeoutGenerator, commitIndex uint64, lastApplied uint64, logindex uint64, matchIndex map[NodeId]uint64, nextIndex map[NodeId]uint64) *RaftNode {
 	leader := NewRaftNode(nodeId, peers, electionTimeout, heartbeatTimeout, timeoutgen)
 	leader.currentTerm = targetTerm
@@ -720,5 +734,16 @@ func TestLeaderGetsMajorityAppendEntriesResponseAndAdvancesCommitIndexAndApplies
 }
 
 func TestFollowerReceivesRequestVoteWithHigherTermAndVotedForIsNullSendsRequestVoteTrue(t *testing.T) {
+	timeoutGen := NewFixedTimeoutGenerator(4)
+	peers := []NodeId{2, 3, 4, 5}
+	follower := createFollower(1, 1, make([]LogEntry, 0), peers, 3, 3, timeoutGen, 0, 0, 1, 0)
 
+	reqVote := Message{Type: RequestVoteRequest, FromNodeId: 2, ToNodeId: 1, CandidateId: 2, PrevLogIndex: 0, PrevLogTerm: 1, Term: 2}
+
+	follower.ProcessNetworkMessage(reqVote)
+	tasks := follower.Ready()
+
+	assert.Equal(t, 1, len(tasks.Messages))
+	assert.Equal(t, RequestVoteResponse, tasks.Messages[len(tasks.Messages)-1].Type)
+	assert.Equal(t, NodeId(2), tasks.Messages[len(tasks.Messages)-1].ToNodeId)
 }
