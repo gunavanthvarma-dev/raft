@@ -386,6 +386,7 @@ func (node *RaftNode) ProcessNetworkMessage(msg Message) {
 		//node.NodeStatus = Follower
 		//node.leaderId = msg.FromNodeId // shoudnt this be like, the node that sent the msg should include the node it thinks is the leader? instead of assuming the message is sent by the leader
 		node.SwitchToFollower()
+		node.currentTerm = msg.Term
 	}
 
 	switch msg.Type {
